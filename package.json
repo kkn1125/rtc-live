@@ -1,0 +1,18 @@
+{
+  "name": "rtc_live",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "socket": "cd front && npm run dev",
+    "front": "cd socket && npm run dev",
+    "start": "concurrently --kill-others-on-fail \"npm run socket\" \"npm run front\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+  },
+  "devDependencies": {
+  }
+}
