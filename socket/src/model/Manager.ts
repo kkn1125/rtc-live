@@ -9,7 +9,7 @@ export default class Manager {
   }
 
   createRoom(options: { id: string; password?: string; limit?: number }) {
-    const room = new Room(options);
+    const room = this.findRoom(options.id) || new Room(options);
     this.rooms.push(room);
     dev.alias("✨CREATE ROOM").log(room);
     return room;
@@ -30,6 +30,15 @@ export default class Manager {
     const room = this.rooms.splice(index, 1)?.[0];
     dev.alias("❌DELETE ROOM").log(room);
     return room;
+  }
+
+  findUser(userId: string) {
+    let user;
+    this.rooms.forEach((room) => {
+      user = room.findUser(userId);
+    });
+    dev.alias("🔍FIND USER IN ROOM").log(user);
+    return user;
   }
 
   findRoomUserIn(userId: string) {

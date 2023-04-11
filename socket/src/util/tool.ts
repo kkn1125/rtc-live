@@ -1,5 +1,7 @@
 import path from "path";
-import { MODE } from "./global";
+import { Message } from "protobufjs";
+import { MODE, userData } from "./global";
+import uWS from "uWebSockets.js";
 
 const dev: any = function () {};
 const prefix = "SERVER";
@@ -169,4 +171,63 @@ export const getRealPath = (routerPath: string, path: string) => {
 
 export function includeResult(data: object, result: object) {
   Object.assign(data, { result: JSON.stringify(Object.assign({}, result)) });
+}
+
+export function publish(app: uWS.TemplatedApp, json: any) {
+  /* 메세지 데이터 처리 */
+  const encode = Message.encode(
+    new Message(Object.assign(json, { data: JSON.stringify(json.data) }))
+  ).finish();
+
+  app.publish("global", encode, true);
+}
+
+export function sendMe(
+  app: uWS.TemplatedApp,
+  ws: uWS.WebSocket<unknown>,
+  json: any
+) {
+  /* 메세지 데이터 처리 */
+  const encode = Message.encode(
+    new Message(Object.assign(json, { data: JSON.stringify(json.data) }))
+  ).finish();
+
+  ws.send(encode, true);
+}
+
+export function sendNotMe(
+  app: uWS.TemplatedApp,
+  ws: uWS.WebSocket<unknown>,
+  json: any
+) {
+  /* 메세지 데이터 처리 */
+  const encode = Message.encode(
+    new Message(Object.assign(json, { data: JSON.stringify(json.data) }))
+  ).finish();
+
+  ws.publish("global", encode, true);
+}
+
+export function sendOthers(
+  app: uWS.TemplatedApp,
+  ws: uWS.WebSocket<unknown>,
+  json: any
+) {
+  /* 메세지 데이터 처리 */
+  const encode = Message.encode(
+    new Message(Object.assign(json, { data: JSON.stringify(json.data) }))
+  ).finish();
+  const data = JSON.parse(json.data);
+  console.log("✨", data);
+  selectWs(data.to).send(encode, true);
+}
+
+export function selectWs(id: string) {
+  console.log(userData);
+  console.log(Array.from(userData));
+  const [ws, value] = ([...Array.from(userData)] || []).find(
+    ([k, v]) => v.id === id
+  );
+  dev.alias("✨get socket").log(ws);
+  return ws;
 }

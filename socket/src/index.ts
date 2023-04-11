@@ -1,13 +1,19 @@
 /* A quite detailed WebSockets upgrade example "async" */
 
 import uWS from "uWebSockets.js";
-import { PORT } from "./util/global";
+import { PORT, userData } from "./util/global";
 import protobufjs from "protobufjs";
 import { v4 } from "uuid";
-import { dev } from "./util/tool";
+import { dev, selectWs } from "./util/tool";
 import Manager from "./model/Manager";
 import roomHandler from "./service/RoomHandler";
 import userHandler from "./service/UserHandler";
+import {
+  mediaAnswerHandler,
+  mediaIceHandler,
+  mediaOfferHandler,
+  mediaRequestHandler,
+} from "./service/MediaHandler";
 
 const { Message, Field } = protobufjs;
 const fields = ["id", "test", "type", "data", "result", "server", "client"];
@@ -91,7 +97,10 @@ const app = uWS
       });
     },
     open: (ws: any) => {
+      userData.set(ws, {});
       ws.subscribe("global");
+      ws.subscribe(ws.id);
+      Object.assign(userData.get(ws), { id: ws.id });
       dev.alias("connect url").log(ws.url);
       dev.alias("user id").log(ws.id);
     },
@@ -145,22 +154,26 @@ function handleBinaryMessage(ws: uWS.WebSocket<unknown>, message: ArrayBuffer) {
   /* 전처리 */
   switch (json.type) {
     case "SIGNAL:ROOM":
-      roomHandler(ws, manager, json);
+      roomHandler(app, ws, manager, json);
       break;
     case "SIGNAL:USER":
-      userHandler(ws, manager, json);
+      userHandler(app, ws, manager, json);
+      break;
+    case "MEDIA:REQUEST":
+      mediaRequestHandler(app, ws, manager, json);
+    case "MEDIA:OFFER":
+      mediaOfferHandler(app, ws, manager, json);
+      break;
+    case "MEDIA:ANSWER":
+      mediaAnswerHandler(app, ws, manager, json);
+      break;
+    case "MEDIA:ICE_CANDIDATE":
+      mediaIceHandler(app, ws, manager, json);
       break;
     default:
       console.log("걸리지 않는 타입", json.type);
       break;
   }
-
-  /* 메세지 데이터 처리 */
-  const encode = Message.encode(
-    new Message(Object.assign(json, { data: JSON.stringify(json.data) }))
-  ).finish();
-
-  app.publish("global", encode, true);
 }
 
 function handleNonBinaryMessage(
@@ -168,6 +181,6 @@ function handleNonBinaryMessage(
   message: ArrayBuffer
 ) {
   dev.alias("💻Non-Binary Data").log(message);
-  
+
   app.publish("global", message);
 }

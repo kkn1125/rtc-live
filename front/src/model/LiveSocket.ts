@@ -30,14 +30,16 @@ export enum INTERCEPT {
   MESSAGE = "INTERCEPT:MESSAGE",
 }
 export enum SIGNAL {
+  GLOBAL = "SIGNAL:GLOBAL",
   CHAT = "SIGNAL:CHAT",
   ROOM = "SIGNAL:ROOM",
   USER = "SIGNAL:USER",
 }
 export enum MEDIA {
-  OFFER = "OFFER",
-  ANSWER = "ANSWER",
-  ICE_CANDIDATE = "ICE_CANDIDATE",
+  REQUEST = "MEDIA:REQUEST",
+  OFFER = "MEDIA:OFFER",
+  ANSWER = "MEDIA:ANSWER",
+  ICE_CANDIDATE = "MEDIA:ICE_CANDIDATE",
 }
 
 export default class LiveSocket {
@@ -63,10 +65,12 @@ export default class LiveSocket {
     this.events[INTERCEPT.ERROR] = { cb: () => {}, data: {} };
     this.events[INTERCEPT.MESSAGE] = { cb: () => {}, data: {} };
 
+    this.events[SIGNAL.GLOBAL] = { cb: () => {}, data: {} };
     this.events[SIGNAL.CHAT] = { cb: () => {}, data: {} };
     this.events[SIGNAL.ROOM] = { cb: () => {}, data: {} };
     this.events[SIGNAL.USER] = { cb: () => {}, data: {} };
 
+    this.events[MEDIA.REQUEST] = { cb: () => {}, data: {} };
     this.events[MEDIA.OFFER] = { cb: () => {}, data: {} };
     this.events[MEDIA.ANSWER] = { cb: () => {}, data: {} };
     this.events[MEDIA.ICE_CANDIDATE] = { cb: () => {}, data: {} };
@@ -85,7 +89,13 @@ export default class LiveSocket {
 
   connectRTC() {
     this.rtc = new LiveRTC();
+
     return new Promise((resolve) => resolve(true));
+  }
+
+  disconnect() {
+    dev.alias("socket disconnect").debug("done");
+    this.ws?.close();
   }
 
   getParsingData(decoded: any) {
@@ -115,18 +125,8 @@ export default class LiveSocket {
       this.getParsingData(decoded);
       dev.alias("📜NON-BINARY MESSAGE").debug(decoded);
 
-      /* 개별 이벤트 */
-      decoded.type === SIGNAL.CHAT &&
-        this.events[SIGNAL.CHAT].cb(SIGNAL.CHAT, decoded, e);
-
       /* 나머지 이벤트 */
-
-      decoded.type === INTERCEPT.MESSAGE &&
-        this.events[INTERCEPT.MESSAGE].cb(INTERCEPT.MESSAGE, decoded, e);
-      decoded.type === SIGNAL.ROOM &&
-        this.events[SIGNAL.ROOM].cb(SIGNAL.ROOM, decoded, e);
-      decoded.type === SIGNAL.USER &&
-        this.events[SIGNAL.USER].cb(SIGNAL.USER, decoded, e);
+      this.dispatchEventData(decoded, e);
     } else {
       // binary
       const decoded = Message.decode(new Uint8Array(e.data)).toJSON();
@@ -135,19 +135,33 @@ export default class LiveSocket {
       this.getParsingData(decoded);
       dev.alias("📜BINARY MESSAGE").debug(decoded);
 
-      /* 개별 이벤트 */
-      decoded.type === SIGNAL.CHAT &&
-        this.events[SIGNAL.CHAT].cb(SIGNAL.CHAT, decoded, e);
-
       /* 나머지 이벤트 */
-      decoded.type === INTERCEPT.MESSAGE &&
-        this.events[INTERCEPT.MESSAGE].cb(INTERCEPT.MESSAGE, decoded, e);
-      decoded.type === SIGNAL.ROOM &&
-        this.events[SIGNAL.ROOM].cb(SIGNAL.ROOM, decoded, e);
-      decoded.type === SIGNAL.USER &&
-        this.events[SIGNAL.USER].cb(SIGNAL.USER, decoded, e);
+      this.dispatchEventData(decoded, e);
     }
   };
+
+  dispatchEventData(decoded: any, e: Event) {
+    decoded.type === INTERCEPT.MESSAGE &&
+      this.events[INTERCEPT.MESSAGE].cb(INTERCEPT.MESSAGE, decoded, e);
+
+    decoded.type === SIGNAL.GLOBAL &&
+      this.events[SIGNAL.GLOBAL].cb(SIGNAL.GLOBAL, decoded, e);
+    decoded.type === SIGNAL.CHAT &&
+      this.events[SIGNAL.CHAT].cb(SIGNAL.CHAT, decoded, e);
+    decoded.type === SIGNAL.ROOM &&
+      this.events[SIGNAL.ROOM].cb(SIGNAL.ROOM, decoded, e);
+    decoded.type === SIGNAL.USER &&
+      this.events[SIGNAL.USER].cb(SIGNAL.USER, decoded, e);
+
+    decoded.type === MEDIA.REQUEST &&
+      this.events[MEDIA.REQUEST].cb(MEDIA.REQUEST, decoded, e);
+    decoded.type === MEDIA.OFFER &&
+      this.events[MEDIA.OFFER].cb(MEDIA.OFFER, decoded, e);
+    decoded.type === MEDIA.ANSWER &&
+      this.events[MEDIA.ANSWER].cb(MEDIA.ANSWER, decoded, e);
+    decoded.type === MEDIA.ICE_CANDIDATE &&
+      this.events[MEDIA.ICE_CANDIDATE].cb(MEDIA.ICE_CANDIDATE, decoded, e);
+  }
 
   /* custom signal events */
   on(
