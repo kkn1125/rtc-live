@@ -31,13 +31,13 @@ function AdminVideo({
             }
           }
         });
-        // ws.on(MEDIA.ICE_CANDIDATE, (type, data) => {
-        //   if (ws.rtc) {
-        //     if (ws.rtc.remoteDescription) {
-        //       ws.rtc.addIceCandidate(data.result.candidate);
-        //     }
-        //   }
-        // });
+        ws.on(MEDIA.ICE_CANDIDATE, (type, data) => {
+          if (ws.rtc) {
+            if (ws.rtc.remoteDescription) {
+              ws.rtc.addIceCandidate(data.result.candidate);
+            }
+          }
+        });
       }
       ws.on(MEDIA.REQUEST, async (type, data) => {
         console.log("시작");

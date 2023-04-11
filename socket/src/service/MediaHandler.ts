@@ -1,3 +1,4 @@
+import { Message } from "protobufjs";
 import uWS from "uWebSockets.js";
 import Manager from "../model/Manager";
 import { includeResult, publish, sendNotMe, sendOthers } from "../util/tool";
@@ -64,7 +65,13 @@ export function mediaIceHandler(
       from: json.data.from,
       candidate: json.data.candidate,
     });
-    sendNotMe(app, ws, json);
+
+    /* 메세지 데이터 처리 */
+    const encode = Message.encode(
+      new Message(Object.assign(json, { data: JSON.stringify(json.data) }))
+    ).finish();
+
+    ws.publish(room.admin.id, encode, true);
   } else if (json.data.action === "fetch") {
   }
 }

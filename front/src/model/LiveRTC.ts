@@ -19,7 +19,7 @@ export default class LiveRTC extends RTCPeerConnection {
     this.onicecandidate = async (e) => {
       console.log("✨icecandidate", e.candidate?.candidate);
       if (e.candidate) {
-        this.events["ice"](e);
+        this.events?.["ice"]?.(e);
         // this.setLocalDescription();
       }
     };
