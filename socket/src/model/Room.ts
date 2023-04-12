@@ -8,6 +8,8 @@ export default class Room {
   admin: User | undefined;
   users: User[] = [];
 
+  chunk: number = 0;
+
   limit?: number = 0;
 
   constructor({
@@ -60,6 +62,14 @@ export default class Room {
     this.users.push(user);
     dev.alias("✨JOIN USER").log(user);
     return user;
+  }
+
+  setChunk(chunk: number) {
+    return (this.chunk = chunk);
+  }
+
+  getChunk() {
+    return this.chunk;
   }
 
   out(id: string) {

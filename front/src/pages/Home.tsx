@@ -14,6 +14,9 @@ function Home() {
   const handleRecordRoom = () => {
     navigate("/record");
   };
+  const handleWatchRoom = () => {
+    navigate("/watch");
+  };
   return (
     <Box>
       <Typography component='h3' variant='h3' align='center' gutterBottom>
@@ -28,6 +31,9 @@ function Home() {
         </Button>
         <Button variant='contained' onClick={handleRecordRoom}>
           record room
+        </Button>
+        <Button variant='contained' onClick={handleWatchRoom}>
+          watch room
         </Button>
       </Stack>
     </Box>

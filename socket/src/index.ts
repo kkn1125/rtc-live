@@ -14,6 +14,7 @@ import {
   mediaOfferHandler,
   mediaRequestHandler,
 } from "./service/MediaHandler";
+import streamHandler from "./service/StreamHandler";
 
 const { Message, Field } = protobufjs;
 const fields = ["id", "test", "type", "data", "result", "server", "client"];
@@ -162,6 +163,9 @@ function handleBinaryMessage(ws: uWS.WebSocket<unknown>, message: ArrayBuffer) {
       break;
     case "SIGNAL:USER":
       userHandler(app, ws, manager, json);
+      break;
+    case "SIGNAL:STREAM":
+      streamHandler(app, ws, manager, json);
       break;
     case "MEDIA:REQUEST":
       mediaRequestHandler(app, ws, manager, json);

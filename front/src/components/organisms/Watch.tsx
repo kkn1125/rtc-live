@@ -1,12 +1,16 @@
 import { Box } from "@mui/material";
 import axios from "axios";
 import React, { useEffect, useRef, useState } from "react";
-import { v4 } from "uuid";
 import LiveSocket, { INTERCEPT, SIGNAL } from "../../model/LiveSocket";
+import LiveCommerceLayout from "./LiveCommerceLayout";
 
 const socket = new LiveSocket("ws", "localhost", 4000);
 
-function VideoRecord() {
+let countDownloadChunk = 0;
+let isSkip = false;
+const mediaSource = new MediaSource();
+
+function Watch() {
   const videoRef = useRef<HTMLVideoElement>();
   const [room, setRoom] = useState({});
   const [user, setUser] = useState({});
@@ -27,38 +31,30 @@ function VideoRecord() {
   }
 
   function registerRecord(stream: MediaStream) {
-    let mediaRecorder = new MediaRecorder(stream, {
-      mimeType: "video/webm;codecs=vp8",
-    });
+    const mediaRecorder = new MediaRecorder(stream);
     let countUploadChunk = 0;
 
     mediaRecorder.ondataavailable = (data) => {
-      console.log(data.data)
       sendFile(data.data, countUploadChunk);
-      socket.signalBinary(SIGNAL.STREAM, {
-        action: "chunk",
-        roomId: "test_room",
-        chunk: countUploadChunk,
-      });
       countUploadChunk++;
     };
-
     mediaRecorder.start();
 
     setInterval(() => {
       mediaRecorder.requestData();
-    }, 2000);
+    }, 10000);
   }
 
-  function registerPlayer(mediaSource: MediaSource) {
+  function registerPlayer(/* mediaSource: MediaSource */) {
     console.log("start play");
     const videoBuffer = mediaSource.addSourceBuffer("video/webm;codecs=vp8");
-    let countDownloadChunk = 0;
 
     setInterval(() => {
       axios
         .get(
-          `http://localhost:5000/api/download?name=${STREAM_NAME}&chunk=${countDownloadChunk}`,
+          `http://localhost:5000/api/download?name=${STREAM_NAME}&chunk=${
+            countDownloadChunk > 0 ? countDownloadChunk : 0
+          }`,
           {
             responseType: "arraybuffer",
           }
@@ -72,9 +68,12 @@ function VideoRecord() {
         .then((buffer) => {
           countDownloadChunk++;
           videoBuffer.appendBuffer(buffer);
+          if (!isSkip) {
+            isSkip = true;
+          }
         })
         .catch(() => {});
-    }, 1000);
+    }, 2000);
   }
 
   useEffect(() => {
@@ -93,13 +92,19 @@ function VideoRecord() {
       });
     });
 
+    // socket.on(SIGNAL.STREAM, (type, data) => {
+    //   if (data.data.action === "fetch") {
+    //     console.log("fetch 완료");
+    //     console.log(data.result.chunk);
+    //   }
+    // });
+
     socket.on(SIGNAL.ROOM, (type, data) => {
       const roomData = data.result.room;
       setRoom((room) => ({ ...room, ...roomData }));
     });
     socket.on(SIGNAL.USER, async (type, data) => {
       const userData = data.result.user;
-      const mediaSource = new MediaSource();
 
       if (socket.rtc && videoRef.current) {
         // socket.rtc.setParent(videoRef.current);
@@ -116,21 +121,51 @@ function VideoRecord() {
           })
           .then((stream) => {
             console.log(stream);
-            /* register */
-            registerRecord(stream);
-            registerPlayer(mediaSource);
             // if (videoRef.current) {
             //   videoRef.current.srcObject = stream;
             // }
+            /* register */
+            // registerRecord(stream);
+            socket.signalBinary(SIGNAL.STREAM, {
+              action: "fetch",
+              roomId: "test_room",
+            });
+            registerPlayer();
           });
       }
     });
   }, []);
+
+  useEffect(() => {
+    // if (videoRef && videoRef.current) {
+    // }
+    handleResizeVideo();
+    function handleResizeVideo() {
+      if (videoRef.current) {
+        videoRef.current.style.height = `${innerHeight}px`;
+        videoRef.current.style.top = "0px";
+        videoRef.current.style.bottom = "0px";
+        videoRef.current.style.left = "50%";
+        videoRef.current.style.transform = "translateX(-50%)";
+      }
+    }
+    (videoRef.current as HTMLVideoElement).style.position = "absolute";
+    window.addEventListener("resize", handleResizeVideo);
+    return () => {
+      window.removeEventListener("resize", handleResizeVideo);
+    };
+  }, []);
+
   return (
-    <Box>
-      <Box component='video' ref={videoRef} autoPlay playsInline />
+    <Box sx={{ height: "100%" }}>
+      <LiveCommerceLayout
+        videoRef={videoRef}
+        video={
+          <Box component='video' ref={videoRef} autoPlay playsInline controls />
+        }
+      />
     </Box>
   );
 }
 
-export default VideoRecord;
+export default Watch;

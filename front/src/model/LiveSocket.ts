@@ -34,6 +34,7 @@ export enum SIGNAL {
   CHAT = "SIGNAL:CHAT",
   ROOM = "SIGNAL:ROOM",
   USER = "SIGNAL:USER",
+  STREAM = "SIGNAL:STREAM",
 }
 export enum MEDIA {
   REQUEST = "MEDIA:REQUEST",
@@ -146,6 +147,8 @@ export default class LiveSocket {
 
     decoded.type === SIGNAL.GLOBAL &&
       this.events[SIGNAL.GLOBAL].cb(SIGNAL.GLOBAL, decoded, e);
+    decoded.type === SIGNAL.STREAM &&
+      this.events[SIGNAL.STREAM].cb(SIGNAL.STREAM, decoded, e);
     decoded.type === SIGNAL.CHAT &&
       this.events[SIGNAL.CHAT].cb(SIGNAL.CHAT, decoded, e);
     decoded.type === SIGNAL.ROOM &&
@@ -180,7 +183,7 @@ export default class LiveSocket {
   signalBinary(
     type: INTERCEPT | SIGNAL | MEDIA | `custom:${string}`,
     data: {
-      action: "create" | "send" | "fetch" | "req";
+      action: "create" | "send" | "fetch" | "req" | "chunk";
       from?: string;
       to?: string;
       offer?: { type: string; sdp?: string };
