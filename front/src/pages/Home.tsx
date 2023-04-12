@@ -11,6 +11,9 @@ function Home() {
   const handleViewerRoom = () => {
     navigate("/viewer");
   };
+  const handleRecordRoom = () => {
+    navigate("/record");
+  };
   return (
     <Box>
       <Typography component='h3' variant='h3' align='center' gutterBottom>
@@ -22,6 +25,9 @@ function Home() {
         </Button>
         <Button variant='contained' onClick={handleViewerRoom}>
           viewer room
+        </Button>
+        <Button variant='contained' onClick={handleRecordRoom}>
+          record room
         </Button>
       </Stack>
     </Box>

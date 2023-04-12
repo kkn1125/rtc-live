@@ -14,8 +14,13 @@ export default function userHandler(
       manager.findUser((ws as any).id) ||
       new User((ws as any).id, json.data.nickname);
     const room = manager.findRoom(json.data.roomId);
-    room.join(user);
-    includeResult(json, { user, room });
+    if (room) {
+      room.join(user);
+      includeResult(json, { user, room });
+    } else {
+      dev.alias("❌NOT FOUND ROOM").log(room, user);
+      includeResult(json, { error: "not found room" });
+    }
     sendMe(app, ws, json);
   }
 }

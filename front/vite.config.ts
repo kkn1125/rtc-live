@@ -20,6 +20,14 @@ export default defineConfig(({ command, mode, ssrBuild }) => {
     server: {
       host: process.env.HOST,
       port: Number(process.env.PORT) || 3000,
+      proxy: {
+        // "/api": {
+        //   target: 'http://localhost:'
+        //   rewrite(path) {
+        //     return path.replace(/\/api/, "");
+        //   },
+        // },
+      },
     },
     plugins: [react()],
   };

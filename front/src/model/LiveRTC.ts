@@ -1,3 +1,4 @@
+import { v4 } from "uuid";
 import { RTC_PEER_CONNECT_OPTION } from "../util/global";
 import { dev } from "../util/tool";
 
@@ -8,6 +9,7 @@ export default class LiveRTC extends RTCPeerConnection {
   offer?: RTCSessionDescriptionInit | RTCSessionDescription;
   answer?: RTCSessionDescriptionInit | RTCSessionDescription;
   events: { [k: string]: Function } = {};
+  channel?: RTCDataChannel;
 
   constructor() {
     super(RTC_PEER_CONNECT_OPTION);
@@ -36,6 +38,19 @@ export default class LiveRTC extends RTCPeerConnection {
       }
       this.events["track"](e);
     };
+  }
+
+  initialDataChannel(channelId: number) {
+    const channel = this.createDataChannel("data_channel", {
+      id: channelId || +new Date(),
+    });
+
+    dev.alias("create data channel").log(channel);
+    channel.onopen = (e) => {
+      console.log(e);
+    };
+
+    this.channel = channel;
   }
 
   on(type: string, cb: (e: RTCTrackEvent & RTCPeerConnectionIceEvent) => void) {

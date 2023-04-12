@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import LiveSocket from "../../model/LiveSocket";
 import AdminVideo from "./AdminVideo";
 import UserVideo from "./UserVideo";
+import UserVideoCopy from "./UserVideoCopy";
 
 function VideoComponent({
   room,
@@ -24,7 +25,7 @@ function VideoComponent({
       {user && user.isAdmin ? (
         <AdminVideo room={room} user={user} ws={ws} />
       ) : (
-        <UserVideo room={room} user={user} ws={ws} />
+        <UserVideoCopy room={room} user={user} ws={ws} />
       )}
     </Box>
   );

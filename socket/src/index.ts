@@ -118,18 +118,22 @@ const app = uWS
     close: (ws, code, message) => {
       console.log("WebSocket closed");
       const room = manager.outUser((ws as any).id);
-      dev.alias("after out user").log(room);
+      if (room) {
+        dev.alias("after out user").log(room);
+      }
 
-      const json = {
-        type: "OUT:USER",
-        data: JSON.stringify({}),
-        result: JSON.stringify({
-          userId: (ws as any).id,
-        }),
-      };
+      if (ws && (ws as any).id) {
+        const json = {
+          type: "OUT:USER",
+          data: JSON.stringify({}),
+          result: JSON.stringify({
+            userId: (ws as any).id,
+          }),
+        };
 
-      const encode = Message.encode(new Message(json)).finish();
-      app.publish("global", encode, true);
+        const encode = Message.encode(new Message(json)).finish();
+        app.publish("global", encode, true);
+      }
     },
   })
   .any("/*", (res, req) => {

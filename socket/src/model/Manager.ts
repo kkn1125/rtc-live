@@ -49,8 +49,12 @@ export default class Manager {
 
   outUser(userId: string) {
     const room = this.findRoomUserIn(userId);
-    room.out(userId);
-    dev.alias("❌OUT ROOM BY USER ID").log(room);
+    if (room) {
+      room.out(userId);
+      dev.alias("❌OUT ROOM BY USER ID").log(room);
+    } else {
+      dev.alias("OUT ROOM NOT FOUND").log(room);
+    }
     return room;
   }
 }

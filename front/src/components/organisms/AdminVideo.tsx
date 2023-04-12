@@ -19,6 +19,7 @@ function AdminVideo({
         ws.rtc.setParent(videoRef.current);
         ws.rtc.createVideo(user);
         await ws.rtc.connectWebCam();
+        ws.rtc.initialDataChannel(1);
         ws.rtc.on("ice", (e: RTCPeerConnectionIceEvent) => {
           if (ws.rtc) {
             if (e.candidate) {

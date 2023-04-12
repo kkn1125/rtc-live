@@ -179,7 +179,18 @@ export default class LiveSocket {
 
   signalBinary(
     type: INTERCEPT | SIGNAL | MEDIA | `custom:${string}`,
-    data: any
+    data: {
+      action: "create" | "send" | "fetch" | "req";
+      from?: string;
+      to?: string;
+      offer?: { type: string; sdp?: string };
+      answer?: { type: string; sdp?: string };
+      candidate?: RTCIceCandidate;
+      id?: string;
+      roomId?: string;
+      userId?: string;
+      [k: string]: any;
+    }
   ) {
     if (typeof data === "string") {
       this.sendBinary({ type, message: data, client: true, server: false });
