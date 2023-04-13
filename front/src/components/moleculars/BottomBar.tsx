@@ -1,22 +1,43 @@
 import React, { useEffect, useState } from "react";
 import BottomNavigation from "@mui/material/BottomNavigation";
 import BottomNavigationAction from "@mui/material/BottomNavigationAction";
+import { Box, Slide, Typography } from "@mui/material";
+
+import MenuIcon from "@mui/icons-material/Menu";
 import FolderIcon from "@mui/icons-material/Folder";
 import RestoreIcon from "@mui/icons-material/Restore";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
-import { Box, Slide, Typography } from "@mui/material";
-import MenuIcon from "@mui/icons-material/Menu";
+import FullscreenIcon from "@mui/icons-material/Fullscreen";
+import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
+import MicIcon from "@mui/icons-material/Mic";
+import MicOffIcon from "@mui/icons-material/MicOff";
+import PictureInPictureIcon from "@mui/icons-material/PictureInPicture";
+import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
+import QuestionAnswerIcon from "@mui/icons-material/QuestionAnswer";
+import ScreenShareIcon from "@mui/icons-material/ScreenShare";
+import StopScreenShareIcon from "@mui/icons-material/StopScreenShare";
+import SwitchVideoIcon from "@mui/icons-material/SwitchVideo";
+import VideocamIcon from "@mui/icons-material/Videocam";
+import VideocamOffIcon from "@mui/icons-material/VideocamOff";
 
-export default function BottomBar() {
+export default function BottomBar({}) {
   const [inArea, setInArea] = useState(false);
   const [value, setValue] = React.useState("recents");
 
-  const handleChange = (event: React.SyntheticEvent, newValue: string) => {
+  const [fullscreen, setFullscreen] = useState(false);
+  const handleToggleFullScreen = () => {
+    setFullscreen(!fullscreen);
+    // toggleFullscreen();
+  };
+  // const mySessionId = sessionId;
+  // const localUser = user;
+
+  const handleChange = (event: any, newValue: React.SetStateAction<string>) => {
     setValue(newValue);
   };
 
-  function nearDetect(e: MouseEvent) {
+  function nearDetect(e: { clientY: number }) {
     const isArea = e.clientY > innerHeight - 70;
 
     setInArea(isArea);
@@ -92,26 +113,60 @@ export default function BottomBar() {
           }}
           value={value}
           onChange={handleChange}>
-          <BottomNavigationAction
-            label='Recents'
-            value='recents'
-            icon={<RestoreIcon />}
+          {/* <BottomNavigationAction
+            onClick={micStatusChanged}
+            label='MicStatusChanged'
+            value='micStatusChanged'
+            icon={
+              localUser !== undefined && localUser.isAudioActive() ? (
+                <MicIcon />
+              ) : (
+                <MicOffIcon color='secondary' />
+              )
+            }
           />
           <BottomNavigationAction
-            label='Favorites'
-            value='favorites'
-            icon={<FavoriteIcon />}
+            onClick={camStatusChanged}
+            label='CamStatusChanged'
+            value='camStatusChanged'
+            icon={
+              localUser !== undefined && localUser.isVideoActive() ? (
+                <VideocamIcon />
+              ) : (
+                <VideocamOffIcon color='secondary' />
+              )
+            }
           />
           <BottomNavigationAction
-            label='Nearby'
-            value='nearby'
-            icon={<LocationOnIcon />}
+            onClick={screenShare}
+            label='ScreenShare'
+            value='screenShare'
+            icon={
+              localUser !== undefined && localUser.isScreenShareActive() ? (
+                <PictureInPictureIcon />
+              ) : (
+                <ScreenShareIcon />
+              )
+            }
           />
           <BottomNavigationAction
-            label='Folder'
-            value='folder'
-            icon={<FolderIcon />}
-          />
+            onClick={selectCamera}
+            label='SelectCamera'
+            value='selectCamera'
+            icon={<SwitchVideoIcon />}
+          /> */}
+          {/* <BottomNavigationAction
+            onClick={handleToggleFullScreen}
+            label='Fullscreen'
+            value='fullscreen'
+            icon={
+              localUser !== undefined && fullscreen ? (
+                <FullscreenExitIcon />
+              ) : (
+                <FullscreenIcon />
+              )
+            }
+          /> */}
         </BottomNavigation>
       </Slide>
     </>

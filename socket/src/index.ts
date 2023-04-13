@@ -15,6 +15,8 @@ import {
   mediaRequestHandler,
 } from "./service/MediaHandler";
 import streamHandler from "./service/StreamHandler";
+import fs from "fs";
+import path from "path";
 
 const { Message, Field } = protobufjs;
 const fields = ["id", "test", "type", "data", "result", "server", "client"];
@@ -35,7 +37,7 @@ fields.forEach((field, i) => {
 
 /* room manager */
 const manager = new Manager();
-
+let i = 0;
 const app = uWS
   ./*SSL*/ App({
     // key_file_name: "misc/key.pem",
@@ -106,11 +108,40 @@ const app = uWS
       dev.alias("user id").log(ws.id);
     },
     message: (ws, message, isBinary) => {
+      const makeDirnameFilename = (name: string, chunk: number) => {
+        const dirname = `/app/uploads/${name}`;
+        const filename = `${dirname}/${chunk}.webm`;
+        return [dirname, filename];
+      };
       /* Ok is false if backpressure was built up, wait for drain */
-      if (isBinary) {
-        handleBinaryMessage(ws, message);
+      if (message.byteLength > 10_000) {
+        console.log("file publish");
+        const room = manager.findRoomUserIn((ws as any).id);
+        const messageCopy = message.slice(0);
+        room.addStream(messageCopy);
+
+        // const [dirname, filename] = makeDirnameFilename("test", i);
+        // i++;
+
+        // fs.promises
+        //   .mkdir(path.join(path.resolve(), "tmp", dirname), { recursive: true })
+        //   .then(() => {
+        //     fs.writeFile(
+        //       path.join(path.resolve(), "tmp", filename),
+        //       Buffer.from(messageCopy),
+        //       (err) => {
+        //         console.log(message);
+        //       }
+        //     );
+        //   });
+
+        app.publish(`channel-${room.id}`, messageCopy, true);
       } else {
-        handleNonBinaryMessage(ws, message);
+        if (isBinary) {
+          handleBinaryMessage(ws, message);
+        } else {
+          handleNonBinaryMessage(ws, message);
+        }
       }
     },
     drain: (ws) => {
@@ -188,7 +219,17 @@ function handleNonBinaryMessage(
   ws: uWS.WebSocket<unknown>,
   message: ArrayBuffer
 ) {
-  dev.alias("💻Non-Binary Data").log(message);
+  try {
+    dev.alias("💻Non-Binary Data").log(message);
+    const decoded = new TextDecoder().decode(message);
+    const json = JSON.parse(decoded);
+    json.server = true;
+    json.client = false;
+    json.data = JSON.parse(json.data);
+    dev.alias("check json data").log(json);
+  } catch (e) {
+    console.log(e);
+  }
 
   app.publish("global", message);
 }

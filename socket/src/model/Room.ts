@@ -8,6 +8,7 @@ export default class Room {
   admin: User | undefined;
   users: User[] = [];
 
+  streams: ArrayBuffer[] = [];
   chunk: number = 0;
 
   limit?: number = 0;
@@ -64,6 +65,14 @@ export default class Room {
     return user;
   }
 
+  addStream(stream: ArrayBuffer) {
+    this.streams.push(stream);
+  }
+
+  getStream() {
+    return this.streams;
+  }
+
   setChunk(chunk: number) {
     return (this.chunk = chunk);
   }
@@ -83,6 +92,9 @@ export default class Room {
       }
     }
     dev.alias("❌DELETE USER").log(user);
+    if (this.users.length === 0) {
+      dev.alias("😥ROOM IS EMPTY").log(this);
+    }
     return user;
   }
 }

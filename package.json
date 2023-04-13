@@ -4,9 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "socket": "cd front && npm run dev",
-    "front": "cd socket && npm run dev",
-    "start": "concurrently --kill-others-on-fail \"npm run socket\" \"npm run front\""
+    "api": "cd api && npm run dev",
+    "socket": "cd socket && npm run dev",
+    "front": "cd front && npm run dev",
+    "start": "concurrently --kill-others-on-fail \"npm run api\" \"npm run socket\" \"npm run front\""
   },
   "keywords": [],
   "author": "",

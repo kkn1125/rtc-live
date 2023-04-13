@@ -11,7 +11,7 @@ let countDownloadChunk = 0;
 let isSkip = false;
 const mediaSource = new MediaSource();
 
-function Watch() {
+function WatchSocket() {
   const videoRef = useRef<HTMLVideoElement>();
   const [room, setRoom] = useState({});
   const [user, setUser] = useState({});
@@ -91,6 +91,9 @@ function Watch() {
         action: "create",
         roomId: "test_room",
       });
+      socket.signalBinary(SIGNAL.STREAM, {
+        action: "subscribe",
+      });
     });
 
     // socket.on(SIGNAL.STREAM, (type, data) => {
@@ -106,7 +109,7 @@ function Watch() {
     });
     socket.on(SIGNAL.USER, async (type, data) => {
       const userData = data.result.user;
-
+      setUser((user) => ({ ...user, ...userData }));
       if (socket.rtc && videoRef.current) {
         // socket.rtc.setParent(videoRef.current);
         // socket.rtc.createVideo(userData);
@@ -121,6 +124,7 @@ function Watch() {
             audio: false,
           })
           .then((stream) => {
+            let streams: ArrayBuffer[] = [];
             console.log(stream);
             // if (videoRef.current) {
             //   videoRef.current.srcObject = stream;
@@ -131,7 +135,40 @@ function Watch() {
               action: "fetch",
               roomId: "test_room",
             });
-            registerPlayer();
+            // registerPlayer();
+            const videoBuffer = mediaSource.addSourceBuffer(CODEC);
+
+            socket.signalBinary(SIGNAL.STREAM, { action: "streams" });
+
+            let countDownloadChunk = 0;
+            let countPlayChunk = 0;
+            socket.on(INTERCEPT.MESSAGE, (type, data) => {
+              console.log(data, countDownloadChunk);
+              if (data.data.byteLength > 10_000) {
+                console.log("뺏어오기!", data.data, countDownloadChunk);
+                streams.push(data.data);
+                countDownloadChunk++;
+                // if (done) {
+
+                // }
+              }
+            });
+
+            setInterval(() => {
+              if (streams[countPlayChunk]) {
+                try {
+                  videoBuffer.appendBuffer(
+                    new Uint8Array(streams[countPlayChunk])
+                  );
+                  console.log("play!", streams[countPlayChunk], countPlayChunk);
+                  countPlayChunk++;
+                  if (videoRef.current) {
+                    console.log("current duration", countDownloadChunk * 2);
+                    videoRef.current.currentTime = countDownloadChunk * 2;
+                  }
+                } catch (error) {}
+              }
+            }, 0);
           });
       }
     });
@@ -161,12 +198,10 @@ function Watch() {
     <Box sx={{ height: "100%" }}>
       <LiveCommerceLayout
         videoRef={videoRef}
-        video={
-          <Box component='video' ref={videoRef} autoPlay playsInline controls />
-        }
+        video={<Box component='video' ref={videoRef} autoPlay playsInline />}
       />
     </Box>
   );
 }
 
-export default Watch;
+export default WatchSocket;

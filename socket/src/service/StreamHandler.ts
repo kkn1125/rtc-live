@@ -24,5 +24,29 @@ export default function streamHandler(
     const room = manager.findRoom(json.data.roomId);
     includeResult(json, { chunk: room.getChunk() - 1 });
     sendMe(app, ws, json);
+  } else if (json.data.action === "streams") {
+    const room = manager.findRoomUserIn((ws as any).id);
+    // includeResult(json, { chunk: room.getChunk() - 1 });
+
+    const uint = new Uint8Array();
+    let byteLength = 0;
+    const streams = room.getStream();
+    for (let stream of streams) {
+      // byteLength += stream.byteLength;
+      dev.alias("🚀🚀 send stream!!!").log(stream);
+      ws.send(stream, true);
+    }
+    // ws.send("done!!");
+    // const newBuffer = new ArrayBuffer(byteLength);
+    // for (let i = 0; i < streams.length - 1; i++) {
+    //   new Uint8Array(newBuffer).set(
+    //     new Uint8Array(streams[i]),
+    //     i === 0 ? 0 : streams[i + 1].byteLength
+    //   );
+    // }
+  } else if (json.data.action === "subscribe") {
+    const room = manager.findRoomUserIn((ws as any).id);
+    // includeResult(json, { chunk: room.getChunk() - 1 });
+    ws.subscribe(`channel-${room.id}`);
   }
 }

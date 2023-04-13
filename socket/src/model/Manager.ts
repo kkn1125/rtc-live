@@ -52,6 +52,10 @@ export default class Manager {
     if (room) {
       room.out(userId);
       dev.alias("❌OUT ROOM BY USER ID").log(room);
+      if (room.users.length === 0) {
+        room.streams = [];
+        dev.alias("🗑️CLEAR STREAMS").log(room.streams);
+      }
     } else {
       dev.alias("OUT ROOM NOT FOUND").log(room);
     }

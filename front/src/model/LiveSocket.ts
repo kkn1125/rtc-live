@@ -11,13 +11,21 @@ function alreadyHasKey(key: string) {
 }
 
 fields.forEach((field, i) => {
-  alreadyHasKey(field)
-    ? Field.d(
-        i,
-        field.match(/server|client/) ? "bool" : "string",
-        "optional"
-      )(Message.prototype, field)
-    : null;
+  if (alreadyHasKey(field)) {
+    switch (field) {
+      case "server":
+      case "client":
+        Field.d(i, "bool", "optional")(Message.prototype, field);
+        break;
+      case "id":
+      case "test":
+      case "type":
+      case "data":
+      case "result":
+        Field.d(i, "string", "optional")(Message.prototype, field);
+        break;
+    }
+  }
 });
 
 type OnEventType = (signal: string, e: Event) => void;
@@ -66,6 +74,7 @@ export default class LiveSocket {
     this.events[INTERCEPT.ERROR] = { cb: () => {}, data: {} };
     this.events[INTERCEPT.MESSAGE] = { cb: () => {}, data: {} };
 
+    this.events[SIGNAL.STREAM] = { cb: () => {}, data: {} };
     this.events[SIGNAL.GLOBAL] = { cb: () => {}, data: {} };
     this.events[SIGNAL.CHAT] = { cb: () => {}, data: {} };
     this.events[SIGNAL.ROOM] = { cb: () => {}, data: {} };
@@ -120,31 +129,36 @@ export default class LiveSocket {
   onMessage = (e: MessageEvent<any>) => {
     if (typeof e.data === "string") {
       // non-binary
-      const decoded = JSON.parse(e.data);
+      try {
+        const decoded = JSON.parse(e.data);
 
-      /* data & result exists? */
-      this.getParsingData(decoded);
-      dev.alias("📜NON-BINARY MESSAGE").debug(decoded);
+        /* data & result exists? */
+        this.getParsingData(decoded);
+        dev.alias("📜NON-BINARY MESSAGE").debug(decoded);
 
-      /* 나머지 이벤트 */
-      this.dispatchEventData(decoded, e);
+        /* 나머지 이벤트 */
+        this.dispatchEventData(decoded, e);
+      } catch (error) {
+        this.events[INTERCEPT.MESSAGE].cb(INTERCEPT.MESSAGE, e);
+      }
     } else {
       // binary
-      const decoded = Message.decode(new Uint8Array(e.data)).toJSON();
+      try {
+        const decoded = Message.decode(new Uint8Array(e.data)).toJSON();
 
-      /* data & result exists? */
-      this.getParsingData(decoded);
-      dev.alias("📜BINARY MESSAGE").debug(decoded);
+        /* data & result exists? */
+        this.getParsingData(decoded);
+        dev.alias("📜BINARY MESSAGE").debug(decoded);
 
-      /* 나머지 이벤트 */
-      this.dispatchEventData(decoded, e);
+        /* 나머지 이벤트 */
+        this.dispatchEventData(decoded, e);
+      } catch (error) {
+        this.events[INTERCEPT.MESSAGE].cb(INTERCEPT.MESSAGE, e);
+      }
     }
   };
 
   dispatchEventData(decoded: any, e: Event) {
-    decoded.type === INTERCEPT.MESSAGE &&
-      this.events[INTERCEPT.MESSAGE].cb(INTERCEPT.MESSAGE, decoded, e);
-
     decoded.type === SIGNAL.GLOBAL &&
       this.events[SIGNAL.GLOBAL].cb(SIGNAL.GLOBAL, decoded, e);
     decoded.type === SIGNAL.STREAM &&
@@ -183,7 +197,14 @@ export default class LiveSocket {
   signalBinary(
     type: INTERCEPT | SIGNAL | MEDIA | `custom:${string}`,
     data: {
-      action: "create" | "send" | "fetch" | "req" | "chunk";
+      action:
+        | "create"
+        | "send"
+        | "fetch"
+        | "req"
+        | "chunk"
+        | "streams"
+        | "subscribe";
       from?: string;
       to?: string;
       offer?: { type: string; sdp?: string };
@@ -193,7 +214,8 @@ export default class LiveSocket {
       roomId?: string;
       userId?: string;
       [k: string]: any;
-    }
+    },
+    file?: Blob
   ) {
     if (typeof data === "string") {
       this.sendBinary({ type, message: data, client: true, server: false });
@@ -201,6 +223,7 @@ export default class LiveSocket {
       this.sendBinary({
         type,
         data: JSON.stringify(data),
+        ...(file && { file }),
         client: true,
         server: false,
       });
@@ -229,5 +252,10 @@ export default class LiveSocket {
   send(data: object) {
     dev.alias("send non-binary data").debug(data);
     this.ws?.send(JSON.stringify(data));
+  }
+
+  sendFile(file: Blob) {
+    dev.alias("send arraybuffer data").debug(file);
+    this.ws?.send(file);
   }
 }

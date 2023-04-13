@@ -14,6 +14,7 @@ export default function userHandler(
       manager.findUser((ws as any).id) ||
       new User((ws as any).id, json.data.nickname);
     const room = manager.findRoom(json.data.roomId);
+    ws.subscribe(json.data.roomId);
     if (room) {
       room.join(user);
       includeResult(json, { user, room });
