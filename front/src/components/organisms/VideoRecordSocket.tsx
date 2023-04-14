@@ -125,48 +125,57 @@ function VideoRecordSocket() {
     });
 
     socket.on(SIGNAL.USER, async (type, data) => {
-      const userData = data.result.user;
-      const mediaSource = new MediaSource();
+      if (data.data.action === "create") {
+        const userData = data.result.user;
+        const mediaSource = new MediaSource();
 
-      if (socket.rtc && videoRef.current) {
-        // socket.rtc.setParent(videoRef.current);
-        // socket.rtc.createVideo(userData);
-        // await socket.rtc.connectWebCam();
+        if (socket.rtc && videoRef.current) {
+          // socket.rtc.setParent(videoRef.current);
+          // socket.rtc.createVideo(userData);
+          // await socket.rtc.connectWebCam();
 
-        if (videoRef.current) {
-          videoRef.current.src = URL.createObjectURL(mediaSource);
-        }
+          if (videoRef.current) {
+            videoRef.current.src = URL.createObjectURL(mediaSource);
+          }
 
-        navigator.mediaDevices
-          .getUserMedia({
-            video: true,
-            audio: false,
-          })
-          .then((stream) => {
-            console.log(stream);
-            const videoBuffer = mediaSource.addSourceBuffer(CODEC);
-            let countDownloadChunk = 0;
-            /* register */
-            registerRecord(stream);
-            socket.on(INTERCEPT.MESSAGE, async (type, data) => {
-              console.log("뺏어오기!", data.data, countDownloadChunk);
-              videoBuffer.appendBuffer(await data.data);
-              countDownloadChunk++;
+          navigator.mediaDevices
+            .getUserMedia({
+              video: true,
+              audio: false,
+            })
+            .then((stream) => {
+              console.log(stream);
+              const videoBuffer = mediaSource.addSourceBuffer(CODEC);
+              let countDownloadChunk = 0;
+              /* register */
+              registerRecord(stream);
+              socket.on(INTERCEPT.MESSAGE, async (type, data) => {
+                console.log("뺏어오기!", data.data, countDownloadChunk);
+                videoBuffer.appendBuffer(await data.data);
+                countDownloadChunk++;
+              });
+              // registerPlayer(mediaSource);
+              // if (videoRef.current) {
+              //   videoRef.current.srcObject = stream;
+              // }
+            })
+            .catch((e) => {
+              console.log(e);
             });
-            // registerPlayer(mediaSource);
-            // if (videoRef.current) {
-            //   videoRef.current.srcObject = stream;
-            // }
-          })
-          .catch((e) => {
-            console.log(e);
-          });
+        }
       }
     });
   }, []);
   return (
     <Box>
-      <Box component='video' ref={videoRef} autoPlay playsInline loop />
+      <Box
+        component='video'
+        ref={videoRef}
+        autoPlay
+        playsInline
+        loop
+        controls
+      />
     </Box>
   );
 }

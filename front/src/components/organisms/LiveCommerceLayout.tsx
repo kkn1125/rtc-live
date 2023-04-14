@@ -3,6 +3,7 @@ import Toolbar from "@mui/material/Toolbar";
 import axios from "axios";
 import { MouseEvent, useState, useRef, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import LiveSocket, { SIGNAL } from "../../model/LiveSocket";
 import BottomBar from "../moleculars/BottomBar";
 import Chattings from "../moleculars/Chattings";
 import LiveToolBar from "../moleculars/LiveToolBar";
@@ -14,9 +15,12 @@ type URLs = string[];
 
 interface LiveCommerceOptionTypes {
   // title: string;
+  room: any;
+  user: any;
   url?: string;
   video?: React.ReactElement;
   videoRef?: React.MutableRefObject<HTMLVideoElement | undefined>;
+  socket: LiveSocket;
 }
 
 const LIVE_SIZE = {
@@ -31,7 +35,14 @@ const LIVE_SIZE = {
   MIN_HEIGHT: 640,
 };
 
-function LiveCommerceLayout({ url, video, videoRef }: LiveCommerceOptionTypes) {
+function LiveCommerceLayout({
+  room,
+  user,
+  url,
+  video,
+  videoRef,
+  socket,
+}: LiveCommerceOptionTypes) {
   const locate = useLocation();
   const navigate = useNavigate();
   const matched = locate.pathname.match(/^\/lvr\/[0-9A-z\-\_]+/g)?.[0];
@@ -42,6 +53,7 @@ function LiveCommerceLayout({ url, video, videoRef }: LiveCommerceOptionTypes) {
     width: 0,
     height: 0,
   });
+  const [toggleChat, setToggleChat] = useState(false);
 
   /* TODO: 추후 개설되지 않은 방 판별 조건문 추가 해야 함. */
   const isWrongPath = !matchPath || matched !== locate.pathname;
@@ -74,6 +86,10 @@ function LiveCommerceLayout({ url, video, videoRef }: LiveCommerceOptionTypes) {
     }
   }, []);
 
+  function toggleChatting() {
+    setToggleChat(!toggleChat);
+  }
+
   return isWrongPath && false ? (
     <>
       <Box
@@ -104,13 +120,14 @@ function LiveCommerceLayout({ url, video, videoRef }: LiveCommerceOptionTypes) {
           width: LIVE_SIZE.WIDTH,
           height: "100%",
           minHeight: LIVE_SIZE.MIN_HEIGHT,
+          backgroundColor: "#000000",
         }}>
         <LiveToolBar />
         <SlideTitle
           size={size}
           title='🌸 [솔가] 최대 70% 할인 🌸 봄맞이 한정 판매, 데일리 마스크!'
         />
-        <MiniTip badge='live' view={12215} color={"error"} />
+        <MiniTip badge='live' view={room?.users?.length || 0} color={"error"} />
         <Stack
           sx={{
             flex: 1,
@@ -141,7 +158,14 @@ function LiveCommerceLayout({ url, video, videoRef }: LiveCommerceOptionTypes) {
             }}>
             사은품 증정 이벤트 안내
           </Typography> */}
-          <Chattings size={size} />
+          <Chattings
+            room={room}
+            user={user}
+            socket={socket}
+            size={size}
+            toggleChat={toggleChat}
+            toggleChatting={toggleChatting}
+          />
           <Box
             sx={{
               zIndex: 1,
