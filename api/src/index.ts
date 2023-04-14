@@ -75,6 +75,27 @@ app.get("/api/download", (req, res) => {
     });
 });
 
+app.get("/", (req, res) => {
+  // console.log(req.headers);
+  // const auth = (req.header("authorization") || "") as string;
+  // const decoded = Buffer.from(auth.slice(6), "base64").toString("utf8");
+  // const [id, pass] = decoded.split(":");
+  // console.log(auth)
+  // if (decoded.includes(":") && id === "test" && pass === "1234") {
+  //   res.status(200).setHeader("Content-Type", "text/html").send(`
+  //       <h1>correct!</h1>
+  //       <h3>hi! test!</h3>
+  //       <button onclick="alert(123)">home</button>
+  //     `);
+  // } else {
+  //   res
+  //     .status(401)
+  //     .setHeader("WWW-Authenticate", 'Basic realm="My Realm"')
+  //     .send("no authentication");
+  // }
+  res.status(200).send("no contents!");
+});
+
 const HOST = process.env.HOST || "localhost";
 const PORT = Number(process.env.PORT) || 5000;
 

@@ -19,10 +19,14 @@ import {
   Badge,
   styled,
   Avatar,
+  TextField,
 } from "@mui/material";
 import HelpCenterIcon from "@mui/icons-material/HelpCenter";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import anime from "animejs";
+import ChatIcon from "@mui/icons-material/Chat";
+import MarkUnreadChatAltIcon from "@mui/icons-material/MarkUnreadChatAlt";
+import LiveSocket, { SIGNAL } from "../../model/LiveSocket";
 
 const opacities = Object.fromEntries(
   new Array(15).fill(0).map((a, i) => [i, (Math.random() + 0.2) * 0.8])
@@ -119,10 +123,20 @@ const randomMessage = [
 
 function Chattings({
   // videoEL,
+  room,
+  user,
+  socket,
   size,
+  toggleChat,
+  toggleChatting,
 }: {
   // videoEL: HTMLIFrameElement | HTMLVideoElement;
+  room: any;
+  user: any;
+  socket: LiveSocket;
   size: { width: number; height: number };
+  toggleChat: boolean;
+  toggleChatting: Function;
 }) {
   const [chattings, setChattings] = useState<
     { nickname: string; content: string; created_at: number }[]
@@ -130,6 +144,8 @@ function Chattings({
   const [heart, setHeart] = useState(false);
   const [articleActive, setArticleActive] = useState(false);
   const chatRef = useRef<HTMLDivElement>();
+  const [chatContent, setChatContent] = useState("");
+  const inputRef = useRef<HTMLInputElement>();
 
   function autoDummyChat() {
     setChattings((chattings) => [
@@ -147,13 +163,6 @@ function Chattings({
     // }, Math.random() * 5000);
   }
 
-  const handleClickHeart = (e: MouseEvent) => {
-    setHeart(true);
-    if (!articleActive) {
-      setArticleActive(true);
-    }
-  };
-
   const offArticleEffect = () => {
     setArticleActive(false);
   };
@@ -166,8 +175,52 @@ function Chattings({
   }, [chattings]);
 
   useEffect(() => {
-    autoDummyChat();
+    // autoDummyChat();
+    socket?.on(SIGNAL.CHAT, (type, data) => {
+      setChattings((chattings) => [
+        ...chattings,
+        {
+          nickname: data.result.nickname,
+          content: data.result.message,
+          created_at: Date.now(),
+        },
+      ]);
+    });
   }, []);
+
+  const handleClickHeart = (e: MouseEvent) => {
+    setHeart(true);
+    if (!articleActive) {
+      setArticleActive(true);
+    }
+  };
+
+  function handleChangeChatContent(e: React.ChangeEvent<HTMLInputElement>) {
+    const target = e.currentTarget;
+    setChatContent(target.value);
+  }
+
+  function handleEnterChatContent(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter") {
+      const target = e.currentTarget;
+      setChattings((chattings) => {
+        socket?.signalBinary(SIGNAL.CHAT, {
+          action: "send",
+          nickname: user.nickname,
+          message: chatContent,
+        });
+        return [
+          ...chattings,
+          {
+            nickname: user.nickname,
+            content: chatContent,
+            created_at: Date.now(),
+          },
+        ];
+      });
+      setChatContent("");
+    }
+  }
 
   return (
     <Stack
@@ -178,47 +231,67 @@ function Chattings({
         px: 2,
         pointerEvents: "initial",
         alignItems: "flex-end",
+        maxHeight: 250,
       }}>
-      <Box
-        ref={chatRef}
+      <Stack
+        justifyContent='flex-end'
         sx={{
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "flex-end",
           flex: 1,
-          backgroundColor: "transparent",
-          color: "inherit",
-          overflow: "auto",
-          maxHeight: 200,
           height: "100%",
           maskImage: "linear-gradient(transparent 0%, #000 50%)",
-          userSelect: "none",
-          bottom: (theme) => theme.typography.pxToRem(45),
-          [`&::-webkit-scrollbar`]: {
-            display: "none",
-          },
-          [`.MuiTypography-root`]: {
-            fontSize: (theme) => theme.typography.pxToRem(14),
-          },
-        }}
-        onClick={autoDummyChat}>
-        {chattings.map(({ nickname, content, created_at }, i) => (
-          <Fade key={i} in timeout={1000}>
-            <Typography>
-              <Typography
-                component='span'
-                fontWeight={700}
-                color={(theme) => theme.palette.grey[600]}>
-                {nickname}
-              </Typography>{" "}
-              {content}
-              {/* |{" "}
+        }}>
+        <Box
+          ref={chatRef}
+          sx={{
+            backgroundColor: "transparent",
+            color: "inherit",
+            overflow: "auto",
+            userSelect: "none",
+            bottom: (theme) => theme.typography.pxToRem(45),
+            [`&::-webkit-scrollbar`]: {
+              display: "none",
+            },
+            [`.MuiTypography-root`]: {
+              fontSize: (theme) => theme.typography.pxToRem(14),
+            },
+          }}
+          onClick={autoDummyChat}>
+          {chattings.map(({ nickname, content, created_at }, i) => (
+            <Fade key={i} in timeout={1000}>
+              <Typography>
+                <Typography
+                  component='span'
+                  fontWeight={700}
+                  color={(theme) => theme.palette.grey[600]}>
+                  {nickname}
+                </Typography>{" "}
+                {content}
+                {/* |{" "}
               {new Date(created_at).toLocaleString("ko")} */}
-            </Typography>
+              </Typography>
+            </Fade>
+          ))}
+          {/* <Button onClick={autoDummyChat}>random chat</Button> */}
+        </Box>
+        {toggleChat && (
+          <Fade in timeout={500}>
+            <TextField
+              inputRef={inputRef}
+              onKeyDown={handleEnterChatContent}
+              onChange={handleChangeChatContent}
+              value={chatContent}
+              size='small'
+              fullWidth
+              autoFocus
+              sx={{
+                ["& .MuiInputBase-root"]: {
+                  backgroundColor: "#ffffff56",
+                },
+              }}
+            />
           </Fade>
-        ))}
-        {/* <Button onClick={autoDummyChat}>random chat</Button> */}
-      </Box>
+        )}
+      </Stack>
       <Stack justifyContent={"space-between"}>
         <IconButton color='inherit'>
           <Box
@@ -273,6 +346,17 @@ function Chattings({
         </IconButton>
         <IconButton color='inherit' size='large'>
           <HelpCenterIcon fontSize='large' />
+        </IconButton>
+        <IconButton
+          color='inherit'
+          size='large'
+          onClick={() => {
+            toggleChatting();
+            setTimeout(() => {
+              inputRef.current?.focus();
+            }, 1);
+          }}>
+          <ChatIcon fontSize='large' />
         </IconButton>
       </Stack>
     </Stack>

@@ -17,6 +17,7 @@ import {
 import streamHandler from "./service/StreamHandler";
 import fs from "fs";
 import path from "path";
+import chatHandler from "./service/ChatHandler";
 
 const { Message, Field } = protobufjs;
 const fields = ["id", "test", "type", "data", "result", "server", "client"];
@@ -156,10 +157,12 @@ const app = uWS
 
       if (ws && (ws as any).id) {
         const json = {
-          type: "OUT:USER",
-          data: JSON.stringify({}),
+          type: "SIGNAL:USER",
+          data: JSON.stringify({ action: "out" }),
           result: JSON.stringify({
             userId: (ws as any).id,
+            room,
+            user: room.findUser((ws as any).id),
           }),
         };
 
@@ -194,6 +197,9 @@ function handleBinaryMessage(ws: uWS.WebSocket<unknown>, message: ArrayBuffer) {
       break;
     case "SIGNAL:USER":
       userHandler(app, ws, manager, json);
+      break;
+    case "SIGNAL:CHAT":
+      chatHandler(app, ws, manager, json);
       break;
     case "SIGNAL:STREAM":
       streamHandler(app, ws, manager, json);
