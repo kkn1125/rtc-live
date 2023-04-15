@@ -30,6 +30,9 @@ function Home() {
         audio: true,
       })
       .then((stream) => {
+        let videoBuffer: SourceBuffer;
+        videoBuffer = mediaSource.addSourceBuffer(CODEC);
+
         if (videoRef.current) {
           localStream = stream;
 
@@ -63,9 +66,6 @@ function Home() {
           // setInterval(() => {
           //   recoder.requestData();
           // }, 2000);
-
-          let videoBuffer: SourceBuffer;
-          videoBuffer = mediaSource.addSourceBuffer(CODEC);
 
           // setInterval(async () => {
           //   if (streams[countDownloadChunk]) {
