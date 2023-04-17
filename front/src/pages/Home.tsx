@@ -1,6 +1,8 @@
 import { Box, Button, Stack, Typography } from "@mui/material";
 import React, { useEffect, useRef } from "react";
 import { useLocation, useNavigate, useOutletContext } from "react-router-dom";
+import videojs from "video.js";
+import "video.js/dist/video-js.css";
 
 let localStream: MediaStream = new MediaStream();
 
@@ -9,7 +11,7 @@ const CODEC = "video/webm;codecs=vp9,opus";
 
 function Home() {
   const navigate = useNavigate();
-  const videoRef = useRef<HTMLVideoElement>();
+  const videoRef = useRef<HTMLDivElement>();
 
   const handlePath = (e: React.MouseEvent) => {
     const target = e.currentTarget as HTMLButtonElement;
@@ -17,11 +19,25 @@ function Home() {
   };
 
   useEffect(() => {
+    const videoJS = document.createElement("video-js") as HTMLVideoElement;
+    videoJS.classList.add("vjs-big-play-centered");
     let loop1: NodeJS.Timer;
 
     const mediaSource = new MediaSource();
     if (videoRef.current) {
-      videoRef.current.src = URL.createObjectURL(mediaSource);
+      videoRef.current.appendChild(videoJS);
+      videoJS.src = URL.createObjectURL(mediaSource);
+      const player = videojs(
+        videoJS,
+        {
+          autoplay: true,
+          controls: true,
+        },
+        () => {
+          videojs.log("player is ready");
+        }
+      );
+      player.autoplay(true);
     }
 
     navigator.mediaDevices
@@ -33,6 +49,9 @@ function Home() {
         if (videoRef.current) {
           localStream = stream;
 
+          let videoBuffer: SourceBuffer;
+          videoBuffer = mediaSource.addSourceBuffer(CODEC);
+
           let countUploadChunk = 0;
           let countDownloadChunk = 0;
 
@@ -40,9 +59,6 @@ function Home() {
             mimeType: CODEC,
           });
           recoder.ondataavailable = async (data) => {
-            // (videoBuffer as SourceBuffer).appendBuffer(
-            //   await data.data.arrayBuffer()
-            // );
             streams.push(data.data);
             countUploadChunk++;
 
@@ -58,36 +74,7 @@ function Home() {
           loop1 = setInterval(() => {
             console.log("record");
             recoder.requestData();
-          }, 1000);
-
-          // setInterval(() => {
-          //   recoder.requestData();
-          // }, 2000);
-
-          let videoBuffer: SourceBuffer;
-          videoBuffer = mediaSource.addSourceBuffer(CODEC);
-
-          // setInterval(async () => {
-          //   if (streams[countDownloadChunk]) {
-          //     console.log(streams[countDownloadChunk]);
-          //     videoBuffer.appendBuffer(
-          //       await streams[countDownloadChunk].arrayBuffer()
-          //     );
-          //     countDownloadChunk++;
-          //   }
-          // }, 1000);
-
-          // videoRef.current.onloadedmetadata = (e) => {
-          //   console.log(e)
-          // };
-
-          // videoRef.current.ontimeupdate = (e) => {
-          //   console.log(e)
-          // }
-
-          // videoRef.current.onplaying=e=>{
-          //   console.log(e)
-          // }
+          }, 100);
         }
       });
     return () => {
@@ -137,16 +124,19 @@ function Home() {
         </Button>
       </Stack>
 
-      <Box
-        component='video'
+      <Box data-vjs-player>
+        <Box ref={videoRef} />
+      </Box>
+      {/* <Box
+        component={"video-js" as React.ElementType<any>}
         ref={videoRef}
+        className='vjs-big-play-centered'
         sx={{
           backgroundColor: "#55555556",
         }}
         autoPlay
         playsInline
-        controls
-      />
+      /> */}
     </Box>
   );
 }

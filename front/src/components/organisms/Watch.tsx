@@ -160,6 +160,9 @@ function Watch() {
   return (
     <Box sx={{ height: "100%" }}>
       <LiveCommerceLayout
+        room={room}
+        user={user}
+        socket={socket}
         videoRef={videoRef}
         video={
           <Box component='video' ref={videoRef} autoPlay playsInline controls />
