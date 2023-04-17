@@ -46,6 +46,9 @@ function Home() {
         audio: true,
       })
       .then((stream) => {
+        let videoBuffer: SourceBuffer;
+        videoBuffer = mediaSource.addSourceBuffer(CODEC);
+
         if (videoRef.current) {
           localStream = stream;
 
