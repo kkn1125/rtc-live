@@ -52,9 +52,6 @@ function Home() {
         if (videoRef.current) {
           localStream = stream;
 
-          let videoBuffer: SourceBuffer;
-          videoBuffer = mediaSource.addSourceBuffer(CODEC);
-
           let countUploadChunk = 0;
           let countDownloadChunk = 0;
 
