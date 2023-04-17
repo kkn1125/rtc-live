@@ -1,0 +1,20 @@
+version: "3.9"
+services:
+  front:
+    container_name: front
+    image: kkn1125/live:front-0.0.1
+    build: .
+    ports:
+      - 3000:3000
+    # volumes:
+    #   - /home/ubuntu/front/:/home/ubuntu/front/
+    command: npm run prod
+  socket:
+    container_name: socket
+    image: kkn1125/live:socket-0.0.1
+    build: .
+    ports:
+      - 8000:8000
+    # volumes:
+    #   - /home/ubuntu/socket/:/home/ubuntu/socket/
+    command: npm run prod

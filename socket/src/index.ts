@@ -20,20 +20,40 @@ import path from "path";
 import chatHandler from "./service/ChatHandler";
 
 const { Message, Field } = protobufjs;
-const fields = ["id", "test", "type", "data", "result", "server", "client"];
+const fields = [
+  "id",
+  "test",
+  "type",
+  "data",
+  "result",
+  "server",
+  "client",
+  "file",
+];
 
 function alreadyHasKey(key: string) {
   return !protobufjs.Message.$type?.fields.hasOwnProperty(key);
 }
 
 fields.forEach((field, i) => {
-  alreadyHasKey(field)
-    ? Field.d(
-        i,
-        field.match(/server|client/) ? "bool" : "string",
-        "optional"
-      )(Message.prototype, field)
-    : null;
+  if (alreadyHasKey(field)) {
+    switch (field) {
+      case "server":
+      case "client":
+        Field.d(i, "bool", "optional")(Message.prototype, field);
+        break;
+      case "id":
+      case "test":
+      case "type":
+      case "data":
+      case "result":
+        Field.d(i, "string", "optional")(Message.prototype, field);
+        break;
+      case "file":
+        Field.d(i, "string", "optional")(Message.prototype, field);
+        break;
+    }
+  }
 });
 
 /* room manager */
@@ -115,34 +135,12 @@ const app = uWS
         return [dirname, filename];
       };
       /* Ok is false if backpressure was built up, wait for drain */
-      if (message.byteLength > 10_000) {
-        console.log("file publish");
-        const room = manager.findRoomUserIn((ws as any).id);
-        const messageCopy = message.slice(0);
-        room.addStream(messageCopy);
-
-        // const [dirname, filename] = makeDirnameFilename("test", i);
-        // i++;
-
-        // fs.promises
-        //   .mkdir(path.join(path.resolve(), "tmp", dirname), { recursive: true })
-        //   .then(() => {
-        //     fs.writeFile(
-        //       path.join(path.resolve(), "tmp", filename),
-        //       Buffer.from(messageCopy),
-        //       (err) => {
-        //         console.log(message);
-        //       }
-        //     );
-        //   });
-
-        app.publish(`channel-${room.id}`, messageCopy, true);
+      // console.log(message);
+      // const decode = Message.decode(new Uint8Array(message)).toJSON();
+      if (isBinary) {
+        handleBinaryMessage(ws, message);
       } else {
-        if (isBinary) {
-          handleBinaryMessage(ws, message);
-        } else {
-          handleNonBinaryMessage(ws, message);
-        }
+        handleNonBinaryMessage(ws, message);
       }
     },
     drain: (ws) => {

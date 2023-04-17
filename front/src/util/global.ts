@@ -23,3 +23,7 @@ export const RTC_PEER_CONNECT_OPTION = {
     },
   ],
 };
+
+export const SOCKET_PROTOCOL = import.meta.env.VITE_SOCKET_PROTOCOL;
+export const SOCKET_HOST = import.meta.env.VITE_SOCKET_HOST;
+export const SOCKET_PORT = import.meta.env.VITE_SOCKET_PORT;

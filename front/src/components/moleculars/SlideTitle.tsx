@@ -91,6 +91,9 @@ function SlideTitle({
         maskRepeat: "no-repeat, no-repeat",
         maskSize: `calc(100% - 8px) 100%, 8px 100%`,
         maskPosition: "0 0, 100% 0",
+        [".PrivateSwipeArea-root"]: {
+          pointerEvents: "none",
+        },
       }}>
       <BottomDrawer
         originRef={baseWidthRef}

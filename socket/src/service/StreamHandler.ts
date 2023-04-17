@@ -48,5 +48,27 @@ export default function streamHandler(
     const room = manager.findRoomUserIn((ws as any).id);
     // includeResult(json, { chunk: room.getChunk() - 1 });
     ws.subscribe(`channel-${room.id}`);
+  } else if (json.data.action === "send") {
+    console.log("file publish");
+    const room = manager.findRoomUserIn((ws as any).id);
+    const messageCopy = new Uint8Array(json.file.split(","));
+    // console.log(messageCopy);
+    room.addStream(messageCopy);
+    // const [dirname, filename] = makeDirnameFilename("test", i);
+    // i++;
+
+    // fs.promises
+    //   .mkdir(path.join(path.resolve(), "tmp", dirname), { recursive: true })
+    //   .then(() => {
+    //     fs.writeFile(
+    //       path.join(path.resolve(), "tmp", filename),
+    //       Buffer.from(messageCopy),
+    //       (err) => {
+    //         console.log(message);
+    //       }
+    //     );
+    //   });
+
+    app.publish(`channel-${room.id}`, messageCopy, true);
   }
 }

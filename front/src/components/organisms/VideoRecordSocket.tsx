@@ -1,17 +1,30 @@
-import { Box } from "@mui/material";
+import { Box, Stack } from "@mui/material";
 import axios from "axios";
 import React, { useEffect, useRef, useState } from "react";
 import { v4 } from "uuid";
 import LiveSocket, { INTERCEPT, SIGNAL } from "../../model/LiveSocket";
+import Chattings from "../moleculars/Chattings";
+import MiniTip from "../moleculars/MiniTip";
+import VideoJS from "./VideoJS";
 
 const socket = new LiveSocket("ws", "localhost", 4000);
 const streams: Blob[] = [];
 const CODEC = "video/webm;codecs=vp9";
+const mediaSource = new MediaSource();
 
 function VideoRecordSocket() {
-  const videoRef = useRef<HTMLVideoElement>();
+  const videoRef = useRef<HTMLDivElement>();
   const [room, setRoom] = useState({});
   const [user, setUser] = useState({});
+
+  const [size, setSize] = useState({
+    width: 0,
+    height: 0,
+  });
+  const [toggleChat, setToggleChat] = useState(false);
+  function toggleChatting() {
+    setToggleChat(!toggleChat);
+  }
 
   function getName() {
     // return +new Date();
@@ -54,7 +67,7 @@ function VideoRecordSocket() {
       // };
       // reader.readAsArrayBuffer(data.data);
       streams.push(data.data);
-      socket.sendFile(data.data);
+      // socket.sendFile(data.data);
       countUploadChunk++;
     };
 
@@ -125,58 +138,53 @@ function VideoRecordSocket() {
     });
 
     socket.on(SIGNAL.USER, async (type, data) => {
+      const userData = data.result.user;
       if (data.data.action === "create") {
-        const userData = data.result.user;
-        const mediaSource = new MediaSource();
-
-        if (socket.rtc && videoRef.current) {
-          // socket.rtc.setParent(videoRef.current);
-          // socket.rtc.createVideo(userData);
-          // await socket.rtc.connectWebCam();
-
-          if (videoRef.current) {
-            videoRef.current.src = URL.createObjectURL(mediaSource);
-          }
-
-          navigator.mediaDevices
-            .getUserMedia({
-              video: true,
-              audio: false,
-            })
-            .then((stream) => {
-              console.log(stream);
-              const videoBuffer = mediaSource.addSourceBuffer(CODEC);
-              let countDownloadChunk = 0;
-              /* register */
-              registerRecord(stream);
-              socket.on(INTERCEPT.MESSAGE, async (type, data) => {
-                console.log("뺏어오기!", data.data, countDownloadChunk);
-                videoBuffer.appendBuffer(await data.data);
-                countDownloadChunk++;
-              });
-              // registerPlayer(mediaSource);
-              // if (videoRef.current) {
-              //   videoRef.current.srcObject = stream;
-              // }
-            })
-            .catch((e) => {
-              console.log(e);
-            });
-        }
+        setUser((user) => ({ ...user, ...userData }));
+        setRoom((room) => ({ ...room, ...data.result.room }));
+      } else if (data.data.action === "fetch") {
+        setRoom((room) => data.result.room);
+      } else if (data.data.action === "out") {
+        setRoom((room) => data.result.room);
       }
     });
   }, []);
   return (
-    <Box>
-      <Box
-        component='video'
-        ref={videoRef}
-        autoPlay
-        playsInline
-        loop
-        controls
-      />
-    </Box>
+    <Stack direction={"row"}>
+      <Stack>
+        <MiniTip
+          badge='live'
+          view={(room as any)?.users?.length || 0}
+          color={"error"}
+        />
+        <Box>
+          <VideoJS
+            admin
+            record
+            socket={socket}
+            videoRef={videoRef}
+            mediaSource={mediaSource}
+            CODEC={CODEC}
+          />
+        </Box>
+      </Stack>
+      <Stack>
+        <Box
+          sx={{
+            height: 400,
+          }}>
+          <Chattings
+            nosidebar
+            room={room}
+            user={user}
+            socket={socket}
+            size={size}
+            toggleChat={toggleChat}
+            toggleChatting={toggleChatting}
+          />
+        </Box>
+      </Stack>
+    </Stack>
   );
 }
 

@@ -4,10 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "copyfiles": "cp -r .env* certs/ public migrations ./build/",
+    "copyfiles": "cp -rf .env* assets/  ./build/",
     "prebuild": "rm -rf build/",
     "build": "tsc -p tsconfig.json && npm run copyfiles",
     "dev": "cross-env NODE_ENV=development nodemon --watch \"src/**\" --ext \"ts,json\" --ignore \"src/**/*.test.ts\" --exec \"ts-node-esm --esm --files src/index.ts\"",
+    "prod": "cross-env NODE_ENV=production nodemon --watch \"src/**\" --ext \"ts,json\" --ignore \"src/**/*.test.ts\" --exec \"ts-node-esm --esm --files src/index.ts\"",
     "deptree": "depcruise --exclude \"^(node_modules|forks|__tests__)\" -T dot src/ | dot -T svg > dependenciesGraph.svg",
     "test": "jest --watchAll"
   },

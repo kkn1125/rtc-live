@@ -4,7 +4,16 @@ import { RTC_PEER_CONNECT_OPTION } from "../util/global";
 import LiveRTC from "./LiveRTC";
 
 const { Message, Field } = protobufjs;
-const fields = ["id", "test", "type", "data", "result", "server", "client"];
+const fields = [
+  "id",
+  "test",
+  "type",
+  "data",
+  "result",
+  "server",
+  "client",
+  "file",
+];
 
 function alreadyHasKey(key: string) {
   return !protobufjs.Message.$type?.fields.hasOwnProperty(key);
@@ -22,6 +31,9 @@ fields.forEach((field, i) => {
       case "type":
       case "data":
       case "result":
+        Field.d(i, "string", "optional")(Message.prototype, field);
+        break;
+      case "file":
         Field.d(i, "string", "optional")(Message.prototype, field);
         break;
     }
@@ -60,7 +72,7 @@ export default class LiveSocket {
   events: {
     [k: string]: {
       data: object;
-      cb: OnEventType & OnEventCallbackType;
+      cb: (OnEventType & OnEventCallbackType)[];
     };
   } = {};
 
@@ -69,21 +81,21 @@ export default class LiveSocket {
     this.host = host;
     this.port = port;
 
-    this.events[INTERCEPT.OPEN] = { cb: () => {}, data: {} };
-    this.events[INTERCEPT.CLOSE] = { cb: () => {}, data: {} };
-    this.events[INTERCEPT.ERROR] = { cb: () => {}, data: {} };
-    this.events[INTERCEPT.MESSAGE] = { cb: () => {}, data: {} };
+    this.events[INTERCEPT.OPEN] = { cb: [() => {}], data: {} };
+    this.events[INTERCEPT.CLOSE] = { cb: [() => {}], data: {} };
+    this.events[INTERCEPT.ERROR] = { cb: [() => {}], data: {} };
+    this.events[INTERCEPT.MESSAGE] = { cb: [() => {}], data: {} };
 
-    this.events[SIGNAL.STREAM] = { cb: () => {}, data: {} };
-    this.events[SIGNAL.GLOBAL] = { cb: () => {}, data: {} };
-    this.events[SIGNAL.CHAT] = { cb: () => {}, data: {} };
-    this.events[SIGNAL.ROOM] = { cb: () => {}, data: {} };
-    this.events[SIGNAL.USER] = { cb: () => {}, data: {} };
+    this.events[SIGNAL.STREAM] = { cb: [() => {}], data: {} };
+    this.events[SIGNAL.GLOBAL] = { cb: [() => {}], data: {} };
+    this.events[SIGNAL.CHAT] = { cb: [() => {}], data: {} };
+    this.events[SIGNAL.ROOM] = { cb: [() => {}], data: {} };
+    this.events[SIGNAL.USER] = { cb: [() => {}], data: {} };
 
-    this.events[MEDIA.REQUEST] = { cb: () => {}, data: {} };
-    this.events[MEDIA.OFFER] = { cb: () => {}, data: {} };
-    this.events[MEDIA.ANSWER] = { cb: () => {}, data: {} };
-    this.events[MEDIA.ICE_CANDIDATE] = { cb: () => {}, data: {} };
+    this.events[MEDIA.REQUEST] = { cb: [() => {}], data: {} };
+    this.events[MEDIA.OFFER] = { cb: [() => {}], data: {} };
+    this.events[MEDIA.ANSWER] = { cb: [() => {}], data: {} };
+    this.events[MEDIA.ICE_CANDIDATE] = { cb: [() => {}], data: {} };
   }
 
   connect() {
@@ -116,15 +128,15 @@ export default class LiveSocket {
 
   onOpen = (e: Event) => {
     dev.alias("✨SOCKET CONNECT").debug(e);
-    this.events[INTERCEPT.OPEN].cb(INTERCEPT.OPEN, e);
+    this.events[INTERCEPT.OPEN].cb.forEach((cb) => cb(INTERCEPT.OPEN, e));
   };
   onError = (e: Event) => {
     dev.alias("❌ERROR SOCKET").debug(e);
-    this.events[INTERCEPT.ERROR].cb(INTERCEPT.ERROR, e);
+    this.events[INTERCEPT.ERROR].cb.forEach((cb) => cb(INTERCEPT.ERROR, e));
   };
   onClose = (e: CloseEvent) => {
     dev.alias("❌CLOSE SOCKET").debug(e);
-    this.events[INTERCEPT.CLOSE].cb(INTERCEPT.CLOSE, e);
+    this.events[INTERCEPT.CLOSE].cb.forEach((cb) => cb(INTERCEPT.CLOSE, e));
   };
   onMessage = (e: MessageEvent<any>) => {
     if (typeof e.data === "string") {
@@ -139,7 +151,9 @@ export default class LiveSocket {
         /* 나머지 이벤트 */
         this.dispatchEventData(decoded, e);
       } catch (error) {
-        this.events[INTERCEPT.MESSAGE].cb(INTERCEPT.MESSAGE, e);
+        this.events[INTERCEPT.MESSAGE].cb.forEach((cb) =>
+          cb(INTERCEPT.MESSAGE, e)
+        );
       }
     } else {
       // binary
@@ -153,31 +167,43 @@ export default class LiveSocket {
         /* 나머지 이벤트 */
         this.dispatchEventData(decoded, e);
       } catch (error) {
-        this.events[INTERCEPT.MESSAGE].cb(INTERCEPT.MESSAGE, e);
+        this.events[INTERCEPT.MESSAGE].cb.forEach((cb) =>
+          cb(INTERCEPT.MESSAGE, e)
+        );
       }
     }
   };
 
   dispatchEventData(decoded: any, e: Event) {
     decoded.type === SIGNAL.GLOBAL &&
-      this.events[SIGNAL.GLOBAL].cb(SIGNAL.GLOBAL, decoded, e);
+      this.events[SIGNAL.GLOBAL].cb.forEach((cb) =>
+        cb(SIGNAL.GLOBAL, decoded, e)
+      );
     decoded.type === SIGNAL.STREAM &&
-      this.events[SIGNAL.STREAM].cb(SIGNAL.STREAM, decoded, e);
+      this.events[SIGNAL.STREAM].cb.forEach((cb) =>
+        cb(SIGNAL.STREAM, decoded, e)
+      );
     decoded.type === SIGNAL.CHAT &&
-      this.events[SIGNAL.CHAT].cb(SIGNAL.CHAT, decoded, e);
+      this.events[SIGNAL.CHAT].cb.forEach((cb) => cb(SIGNAL.CHAT, decoded, e));
     decoded.type === SIGNAL.ROOM &&
-      this.events[SIGNAL.ROOM].cb(SIGNAL.ROOM, decoded, e);
+      this.events[SIGNAL.ROOM].cb.forEach((cb) => cb(SIGNAL.ROOM, decoded, e));
     decoded.type === SIGNAL.USER &&
-      this.events[SIGNAL.USER].cb(SIGNAL.USER, decoded, e);
+      this.events[SIGNAL.USER].cb.forEach((cb) => cb(SIGNAL.USER, decoded, e));
 
     decoded.type === MEDIA.REQUEST &&
-      this.events[MEDIA.REQUEST].cb(MEDIA.REQUEST, decoded, e);
+      this.events[MEDIA.REQUEST].cb.forEach((cb) =>
+        cb(MEDIA.REQUEST, decoded, e)
+      );
     decoded.type === MEDIA.OFFER &&
-      this.events[MEDIA.OFFER].cb(MEDIA.OFFER, decoded, e);
+      this.events[MEDIA.OFFER].cb.forEach((cb) => cb(MEDIA.OFFER, decoded, e));
     decoded.type === MEDIA.ANSWER &&
-      this.events[MEDIA.ANSWER].cb(MEDIA.ANSWER, decoded, e);
+      this.events[MEDIA.ANSWER].cb.forEach((cb) =>
+        cb(MEDIA.ANSWER, decoded, e)
+      );
     decoded.type === MEDIA.ICE_CANDIDATE &&
-      this.events[MEDIA.ICE_CANDIDATE].cb(MEDIA.ICE_CANDIDATE, decoded, e);
+      this.events[MEDIA.ICE_CANDIDATE].cb.forEach((cb) =>
+        cb(MEDIA.ICE_CANDIDATE, decoded, e)
+      );
   }
 
   /* custom signal events */
@@ -187,11 +213,11 @@ export default class LiveSocket {
   ) {
     if (!this.events[type]) {
       this.events[type] = {
-        cb: () => {},
+        cb: [() => {}],
         data: {},
       };
     }
-    this.events[type].cb = cb;
+    this.events[type].cb.push(cb);
   }
 
   signalBinary(
@@ -254,8 +280,17 @@ export default class LiveSocket {
     this.ws?.send(JSON.stringify(data));
   }
 
-  sendFile(file: Blob) {
-    dev.alias("send arraybuffer data").debug(file);
-    this.ws?.send(file);
+  sendFile(file: ArrayBuffer) {
+    dev.alias("send arraybuffer data").debug(typeof file);
+    const data = Message.encode(
+      new Message({
+        type: SIGNAL.STREAM,
+        data: JSON.stringify({
+          action: "send",
+        }),
+        file: new Uint8Array(file).toString(),
+      })
+    ).finish();
+    this.ws?.send(data);
   }
 }

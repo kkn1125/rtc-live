@@ -123,6 +123,7 @@ const randomMessage = [
 
 function Chattings({
   // videoEL,
+  nosidebar = false,
   room,
   user,
   socket,
@@ -131,6 +132,7 @@ function Chattings({
   toggleChatting,
 }: {
   // videoEL: HTMLIFrameElement | HTMLVideoElement;
+  nosidebar?: boolean;
   room: any;
   user: any;
   socket: LiveSocket;
@@ -204,6 +206,7 @@ function Chattings({
     if (e.key === "Enter") {
       const target = e.currentTarget;
       setChattings((chattings) => {
+        console.log(user);
         socket?.signalBinary(SIGNAL.CHAT, {
           action: "send",
           nickname: user.nickname,
@@ -231,14 +234,18 @@ function Chattings({
         px: 2,
         pointerEvents: "initial",
         alignItems: "flex-end",
-        maxHeight: 250,
+        ...(!nosidebar && {
+          maxHeight: 250,
+        }),
       }}>
       <Stack
         justifyContent='flex-end'
         sx={{
           flex: 1,
           height: "100%",
-          maskImage: "linear-gradient(transparent 0%, #000 50%)",
+          ...(!nosidebar && {
+            maskImage: "linear-gradient(transparent 0%, #000 50%)",
+          }),
         }}>
         <Box
           ref={chatRef}
@@ -247,6 +254,9 @@ function Chattings({
             color: "inherit",
             overflow: "auto",
             userSelect: "none",
+            ...(nosidebar && {
+              height: 300,
+            }),
             bottom: (theme) => theme.typography.pxToRem(45),
             [`&::-webkit-scrollbar`]: {
               display: "none",
@@ -273,7 +283,7 @@ function Chattings({
           ))}
           {/* <Button onClick={autoDummyChat}>random chat</Button> */}
         </Box>
-        {toggleChat && (
+        {(nosidebar || toggleChat) && (
           <Fade in timeout={500}>
             <TextField
               inputRef={inputRef}
@@ -292,73 +302,77 @@ function Chattings({
           </Fade>
         )}
       </Stack>
-      <Stack justifyContent={"space-between"}>
-        <IconButton color='inherit'>
-          <Box
+      {!nosidebar && (
+        <Stack justifyContent={"space-between"}>
+          <IconButton color='inherit'>
+            <Box
+              sx={{
+                position: "relative",
+                ["&::before"]: {
+                  content: '"➕"',
+                  color: "transparent",
+                  textShadow: "0 0 0 #ffffff",
+                  fontSize: 12,
+                  borderRadius: "50%",
+                  p: 0.3,
+                  backgroundColor: "#ff0000",
+                  position: "absolute",
+                  top: "100%",
+                  left: "50%",
+                  transform: "translate(-50%, -50%)",
+                  zIndex: 1,
+                },
+              }}>
+              <Avatar
+                alt='Remy Sharp'
+                src='/static/images/avatar/1.jpg'
+                sx={{
+                  width: 50,
+                  height: 50,
+                }}
+              />
+            </Box>
+          </IconButton>
+          <IconButton
+            color='inherit'
+            size='large'
+            onClick={handleClickHeart}
             sx={{
               position: "relative",
-              ["&::before"]: {
-                content: '"➕"',
-                color: "transparent",
-                textShadow: "0 0 0 #ffffff",
-                fontSize: 12,
-                borderRadius: "50%",
-                p: 0.3,
-                backgroundColor: "#ff0000",
-                position: "absolute",
-                top: "100%",
-                left: "50%",
-                transform: "translate(-50%, -50%)",
-                zIndex: 1,
-              },
             }}>
-            <Avatar
-              alt='Remy Sharp'
-              src='/static/images/avatar/1.jpg'
+            <Box
+              className='articles'
               sx={{
-                width: 50,
-                height: 50,
-              }}
+                position: "absolute",
+                top: "28%",
+                left: "28%",
+              }}>
+              {articleActive && (
+                <Articles offArticleEffect={offArticleEffect} />
+              )}
+            </Box>
+            <FavoriteIcon
+              fontSize='large'
+              color={heart ? "error" : "inherit"}
+              sx={{ zIndex: 5 }}
             />
-          </Box>
-        </IconButton>
-        <IconButton
-          color='inherit'
-          size='large'
-          onClick={handleClickHeart}
-          sx={{
-            position: "relative",
-          }}>
-          <Box
-            className='articles'
-            sx={{
-              position: "absolute",
-              top: "28%",
-              left: "28%",
+          </IconButton>
+          <IconButton color='inherit' size='large'>
+            <HelpCenterIcon fontSize='large' />
+          </IconButton>
+          <IconButton
+            color='inherit'
+            size='large'
+            onClick={() => {
+              toggleChatting();
+              setTimeout(() => {
+                inputRef.current?.focus();
+              }, 1);
             }}>
-            {articleActive && <Articles offArticleEffect={offArticleEffect} />}
-          </Box>
-          <FavoriteIcon
-            fontSize='large'
-            color={heart ? "error" : "inherit"}
-            sx={{ zIndex: 5 }}
-          />
-        </IconButton>
-        <IconButton color='inherit' size='large'>
-          <HelpCenterIcon fontSize='large' />
-        </IconButton>
-        <IconButton
-          color='inherit'
-          size='large'
-          onClick={() => {
-            toggleChatting();
-            setTimeout(() => {
-              inputRef.current?.focus();
-            }, 1);
-          }}>
-          <ChatIcon fontSize='large' />
-        </IconButton>
-      </Stack>
+            <ChatIcon fontSize='large' />
+          </IconButton>
+        </Stack>
+      )}
     </Stack>
   );
 }

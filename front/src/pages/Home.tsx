@@ -3,6 +3,7 @@ import React, { useEffect, useRef } from "react";
 import { useLocation, useNavigate, useOutletContext } from "react-router-dom";
 import videojs from "video.js";
 import "video.js/dist/video-js.css";
+import VideoJS from "../components/organisms/VideoJS";
 
 let localStream: MediaStream = new MediaStream();
 
@@ -11,7 +12,7 @@ const CODEC = "video/webm;codecs=vp9,opus";
 
 function Home() {
   const navigate = useNavigate();
-  const videoRef = useRef<HTMLDivElement>();
+  const videoRef = useRef<HTMLVideoElement>();
 
   const handlePath = (e: React.MouseEvent) => {
     const target = e.currentTarget as HTMLButtonElement;
@@ -32,12 +33,26 @@ function Home() {
         {
           autoplay: true,
           controls: true,
+          liveui: true,
+          liveTracker: {
+            liveTolerance: 1,
+            trackingThreshold: 5,
+          },
         },
         () => {
           videojs.log("player is ready");
         }
       );
       player.autoplay(true);
+      player.options({
+        autoplay: true,
+        controls: true,
+        liveui: true,
+        liveTracker: {
+          liveTolerance: 1,
+          trackingThreshold: 5,
+        },
+      });
     }
 
     navigator.mediaDevices
@@ -124,10 +139,8 @@ function Home() {
         </Button>
       </Stack>
 
-      <Box data-vjs-player>
-        <Box ref={videoRef} />
-      </Box>
-      {/* <Box
+      {/* <VideoJS videoRef={videoRef} /> */}
+      <Box
         component={"video-js" as React.ElementType<any>}
         ref={videoRef}
         className='vjs-big-play-centered'
@@ -136,7 +149,7 @@ function Home() {
         }}
         autoPlay
         playsInline
-      /> */}
+      />
     </Box>
   );
 }

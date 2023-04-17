@@ -185,7 +185,7 @@ function LiveCommerceLayout({
             </Typography>
           </Box>
           <Toolbar sx={{ pointerEvents: "none" }} />
-          <BottomBar />
+          {/* <BottomBar /> */}
         </Stack>
       </Stack>
     </Stack>
