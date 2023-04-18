@@ -5,14 +5,17 @@ import LiveSocket, { INTERCEPT, SIGNAL } from "../../model/LiveSocket";
 import LiveCommerceLayout from "./LiveCommerceLayout";
 import VideoJS from "./VideoJS";
 import videojs from "video.js";
-import { SOCKET_HOST, SOCKET_PORT, SOCKET_PROTOCOL } from "../../util/global";
+import {
+  CODEC,
+  SOCKET_HOST,
+  SOCKET_PORT,
+  SOCKET_PROTOCOL,
+} from "../../util/global";
 
 const socket = new LiveSocket(SOCKET_PROTOCOL, SOCKET_HOST, SOCKET_PORT);
-const CODEC = "video/webm;codecs=vp9";
 
 let countDownloadChunk = 0;
 let isSkip = false;
-const mediaSource = new MediaSource();
 
 function WatchSocket() {
   const videoRef = useRef<HTMLDivElement>();
@@ -49,36 +52,36 @@ function WatchSocket() {
     }, 10000);
   }
 
-  function registerPlayer(/* mediaSource: MediaSource */) {
-    console.log("start play");
-    const videoBuffer = mediaSource.addSourceBuffer(CODEC);
+  // function registerPlayer(/* mediaSource: MediaSource */) {
+  //   console.log("start play");
+  //   const videoBuffer = mediaSource.addSourceBuffer(CODEC);
 
-    setInterval(() => {
-      axios
-        .get(
-          `http://localhost:5000/api/download?name=${STREAM_NAME}&chunk=${
-            countDownloadChunk > 0 ? countDownloadChunk : 0
-          }`,
-          {
-            responseType: "arraybuffer",
-          }
-        )
-        .then((response) => {
-          if (response.status !== 200) {
-            throw Error("no such file");
-          }
-          return response.data;
-        })
-        .then((buffer) => {
-          countDownloadChunk++;
-          videoBuffer.appendBuffer(buffer);
-          if (!isSkip) {
-            isSkip = true;
-          }
-        })
-        .catch(() => {});
-    }, 2000);
-  }
+  //   setInterval(() => {
+  //     axios
+  //       .get(
+  //         `http://localhost:5000/api/download?name=${STREAM_NAME}&chunk=${
+  //           countDownloadChunk > 0 ? countDownloadChunk : 0
+  //         }`,
+  //         {
+  //           responseType: "arraybuffer",
+  //         }
+  //       )
+  //       .then((response) => {
+  //         if (response.status !== 200) {
+  //           throw Error("no such file");
+  //         }
+  //         return response.data;
+  //       })
+  //       .then((buffer) => {
+  //         countDownloadChunk++;
+  //         videoBuffer.appendBuffer(buffer);
+  //         if (!isSkip) {
+  //           isSkip = true;
+  //         }
+  //       })
+  //       .catch(() => {});
+  //   }, 2000);
+  // }
 
   useEffect(() => {
     socket.connect();
@@ -141,6 +144,7 @@ function WatchSocket() {
     window.addEventListener("resize", handleResizeVideo);
     return () => {
       window.removeEventListener("resize", handleResizeVideo);
+      socket.disconnect();
     };
   }, []);
 
@@ -154,8 +158,7 @@ function WatchSocket() {
           <VideoJS
             socket={socket}
             videoRef={videoRef}
-            mediaSource={mediaSource}
-            CODEC={CODEC}
+            // mediaSource={mediaSource}
           />
         }
       />

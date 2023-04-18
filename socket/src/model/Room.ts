@@ -93,7 +93,7 @@ export default class Room {
     }
     dev.alias("❌DELETE USER").log(user);
     if (this.users.length === 0) {
-      dev.alias("😥ROOM IS EMPTY").log(this);
+      dev.alias("😥ROOM IS EMPTY").log(!!this);
     }
     return user;
   }

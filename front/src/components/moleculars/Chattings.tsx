@@ -265,7 +265,9 @@ function Chattings({
               fontSize: (theme) => theme.typography.pxToRem(14),
             },
           }}
-          onClick={autoDummyChat}>
+          onClick={() => {
+            /* autoDummyChat() */
+          }}>
           {chattings.map(({ nickname, content, created_at }, i) => (
             <Fade key={i} in timeout={1000}>
               <Typography>

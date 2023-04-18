@@ -129,11 +129,6 @@ const app = uWS
       dev.alias("user id").log(ws.id);
     },
     message: (ws, message, isBinary) => {
-      const makeDirnameFilename = (name: string, chunk: number) => {
-        const dirname = `/app/uploads/${name}`;
-        const filename = `${dirname}/${chunk}.webm`;
-        return [dirname, filename];
-      };
       /* Ok is false if backpressure was built up, wait for drain */
       // console.log(message);
       // const decode = Message.decode(new Uint8Array(message)).toJSON();
@@ -150,7 +145,7 @@ const app = uWS
       console.log("WebSocket closed");
       const room = manager.outUser((ws as any).id);
       if (room) {
-        dev.alias("after out user").log(room);
+        dev.alias("after out user").log(!!room);
       }
 
       if (ws && (ws as any).id) {
@@ -160,7 +155,7 @@ const app = uWS
           result: JSON.stringify({
             userId: (ws as any).id,
             room,
-            user: room.findUser((ws as any).id),
+            user: room?.findUser((ws as any).id) || {},
           }),
         };
 
@@ -181,12 +176,12 @@ const app = uWS
   });
 
 function handleBinaryMessage(ws: uWS.WebSocket<unknown>, message: ArrayBuffer) {
-  dev.alias("💻Binary Data").log(message);
+  dev.alias("💻Binary Data").log(!!message);
   const json = Message.decode(new Uint8Array(message)).toJSON();
   json.server = true;
   json.client = false;
   json.data = JSON.parse(json.data);
-  dev.alias("check json data").log(json);
+  // dev.alias("check json data").log(json);
 
   /* 전처리 */
   switch (json.type) {
@@ -230,7 +225,7 @@ function handleNonBinaryMessage(
     json.server = true;
     json.client = false;
     json.data = JSON.parse(json.data);
-    dev.alias("check json data").log(json);
+    // dev.alias("check json data").log(json);
   } catch (e) {
     console.log(e);
   }

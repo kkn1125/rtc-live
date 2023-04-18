@@ -184,7 +184,7 @@ function LiveCommerceLayout({
               📢 라이브에서만 누릴 수 있는 혜택! 놓지지 마세요! ✨
             </Typography>
           </Box>
-          <Toolbar sx={{ pointerEvents: "none" }} />
+          {/* <Toolbar sx={{ pointerEvents: "none" }} /> */}
           {/* <BottomBar /> */}
         </Stack>
       </Stack>

@@ -27,3 +27,30 @@ export const RTC_PEER_CONNECT_OPTION = {
 export const SOCKET_PROTOCOL = import.meta.env.VITE_SOCKET_PROTOCOL;
 export const SOCKET_HOST = import.meta.env.VITE_SOCKET_HOST;
 export const SOCKET_PORT = import.meta.env.VITE_SOCKET_PORT;
+export const CODEC = 'video/webm;codecs="vp9,opus"';
+export const VIDEO_OPTION = {
+  autoplay: true,
+  controls: true,
+  responsive: true,
+  fluid: true,
+  liveui: true,
+  liveTracker: {
+    // 몇초까지 live로 인식할지
+    liveTolerance: 5,
+    // 몇초까지 벌어져야 live를 띄울지
+    trackingThreshold: 5,
+  },
+};
+export const VIEWER_VIDEO_OPTION = {
+  autoplay: true,
+  controls: false,
+  responsive: true,
+  fluid: true,
+  liveui: true,
+  liveTracker: {
+    // 몇초까지 live로 인식할지
+    liveTolerance: 5,
+    // 몇초까지 벌어져야 live를 띄울지
+    trackingThreshold: 10,
+  },
+};

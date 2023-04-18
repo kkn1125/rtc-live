@@ -1,26 +1,30 @@
-import { Box } from "@mui/material";
-import React, { useEffect, useRef } from "react";
+import { Box, Button } from "@mui/material";
+import React, { useEffect, useRef, useState } from "react";
 import videojs from "video.js";
+import Player from "video.js/dist/types/player";
 import "video.js/dist/video-js.css";
 import LiveSocket, { INTERCEPT, SIGNAL } from "../../model/LiveSocket";
+import { CODEC, VIEWER_VIDEO_OPTION } from "../../util/global";
 
 let streams: ArrayBuffer[] = [];
+let mediaSource: MediaSource | undefined;
 
 function VideoJS({
   admin = false,
   record = false,
   socket,
   videoRef,
-  mediaSource,
-  CODEC,
-}: {
+}: // mediaSource,
+{
   admin?: boolean;
   record?: boolean;
   socket: LiveSocket;
   videoRef: React.MutableRefObject<HTMLDivElement | undefined>;
-  mediaSource: MediaSource;
-  CODEC: string;
+  // mediaSource: MediaSource;
 }) {
+  const [isLive, setIsLive] = useState(false);
+  const playerRef = useRef<Player | undefined>(undefined);
+
   function registerRecord(stream: MediaStream) {
     let mediaRecorder = new MediaRecorder(stream, {
       mimeType: CODEC,
@@ -46,12 +50,13 @@ function VideoJS({
   }
 
   useEffect(() => {
+    mediaSource = new MediaSource();
     socket.on(SIGNAL.USER, async (type, data) => {
       if (data.data.action === "create" && socket.rtc && videoRef.current) {
         const videoElement = document.createElement(
           "video-js"
         ) as HTMLVideoElement;
-        videoElement.src = URL.createObjectURL(mediaSource);
+        videoElement.src = URL.createObjectURL(mediaSource as MediaSource);
         videoElement.classList.add(
           "vjs-big-play-centered",
           "vjs-live",
@@ -59,28 +64,16 @@ function VideoJS({
         );
         videoRef.current.appendChild(videoElement);
 
-        const player = videojs(
+        const player = (playerRef.current = videojs(
           videoElement,
-          {
-            liveui: true,
-            liveTracker: {
-              liveTolerance: 0.5,
-              trackingThreshold: 1,
-            },
-          },
+          VIEWER_VIDEO_OPTION,
           () => {
             videojs.log("player is ready");
           }
-        );
+        ));
         player.autoplay(true);
         player.controls(true);
-        player.options({
-          liveui: true,
-          liveTracker: {
-            liveTolerance: 0.5,
-            trackingThreshold: 1,
-          },
-        });
+        player.options(VIEWER_VIDEO_OPTION);
 
         navigator.mediaDevices
           .getUserMedia({
@@ -89,7 +82,9 @@ function VideoJS({
           })
           .then((stream) => {
             if (record) {
-              const videoBuffer = mediaSource.addSourceBuffer(CODEC);
+              const videoBuffer = (mediaSource as MediaSource).addSourceBuffer(
+                CODEC
+              );
               let countDownloadChunk = 0;
               /* register */
               registerRecord(stream);
@@ -102,32 +97,23 @@ function VideoJS({
               });
             } else {
               console.log(stream);
-              // if (videoRef.current) {
-              //   videoRef.current.srcObject = stream;
-              // }
               /* register */
-              // registerRecord(stream);
               socket.signalBinary(SIGNAL.STREAM, {
                 action: "fetch",
                 roomId: "test_room",
               });
-              // registerPlayer();
-              const videoBuffer = mediaSource.addSourceBuffer(CODEC);
+              const videoBuffer = (mediaSource as MediaSource).addSourceBuffer(
+                CODEC
+              );
 
               socket.signalBinary(SIGNAL.STREAM, { action: "streams" });
 
               let countDownloadChunk = 0;
               let countPlayChunk = 0;
               socket.on(INTERCEPT.MESSAGE, (type, data) => {
-                // console.log(data, countDownloadChunk);
-                // if (data.data.byteLength > 10_000) {
                 console.log("뺏어오기!", /* data.data, */ countDownloadChunk);
                 streams.push(data.data);
                 countDownloadChunk++;
-                // if (done) {
-
-                // }
-                // }
               });
 
               setInterval(() => {
@@ -136,6 +122,33 @@ function VideoJS({
                     videoBuffer.appendBuffer(
                       new Uint8Array(streams[countPlayChunk])
                     );
+                    // @ts-ignore
+                    console.log(
+                      "liveWindow",
+                      // @ts-ignore
+                      playerRef.current?.liveTracker.liveWindow()
+                    );
+                    console.log(
+                      "liveCurrentTime",
+                      // @ts-ignore
+                      playerRef.current?.liveTracker.liveCurrentTime()
+                    );
+                    console.log(
+                      "gap",
+                      countDownloadChunk -
+                        // @ts-ignore
+                        playerRef.current?.liveTracker.isLive()
+                    );
+                    console.log(
+                      "test",
+                      // @ts-ignore
+                      playerRef.current?.liveTracker.isLive()
+                    );
+                    // @ts-ignore
+                    setIsLive(() =>
+                      // @ts-ignore
+                      playerRef.current?.liveTracker.isLive()
+                    );
                     console.log(
                       "play!",
                       streams[countPlayChunk],
@@ -143,8 +156,7 @@ function VideoJS({
                     );
                     countPlayChunk++;
                     if (videoRef.current) {
-                      console.log("current duration", countDownloadChunk * 2);
-                      // videoRef.current.currentTime = countDownloadChunk * 2;
+                      console.log("current duration", countDownloadChunk);
                     }
                   } catch (error) {}
                 }
@@ -153,7 +165,17 @@ function VideoJS({
           });
       }
     });
+
+    return () => {
+      streams = [];
+      mediaSource = undefined;
+    };
   }, []);
+
+  function handleSeekToLive() {
+    // @ts-ignore
+    playerRef.current.liveTracker.seekToLiveEdge_();
+  }
 
   return (
     <Box
@@ -169,6 +191,7 @@ function VideoJS({
               height: "100%",
             }
           : {
+              position: "relative",
               width: 500,
               height: 300,
             }
@@ -191,6 +214,20 @@ function VideoJS({
           },
         }}
       />
+      {!isLive && (
+        <Button
+          variant='contained'
+          color='error'
+          size='small'
+          sx={{
+            position: "absolute",
+            top: 100,
+            right: 10,
+          }}
+          onClick={handleSeekToLive}>
+          실시간 보기
+        </Button>
+      )}
     </Box>
   );
 }

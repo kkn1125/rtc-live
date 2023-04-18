@@ -11,7 +11,7 @@ export default class Manager {
   createRoom(options: { id: string; password?: string; limit?: number }) {
     const room = this.findRoom(options.id) || new Room(options);
     this.rooms.push(room);
-    dev.alias("✨CREATE ROOM").log(room);
+    dev.alias("✨CREATE ROOM").log(!!room);
     return room;
   }
 
@@ -21,14 +21,14 @@ export default class Manager {
 
   findRoom(id: string) {
     const room = this.rooms.find((r) => r.id === id);
-    dev.alias("🔍FIND ROOM").log(room);
+    dev.alias("🔍FIND ROOM").log(!!room);
     return room;
   }
 
   deleteRoom(id: string) {
     const index = this.rooms.findIndex((room) => room.id === id);
     const room = this.rooms.splice(index, 1)?.[0];
-    dev.alias("❌DELETE ROOM").log(room);
+    dev.alias("❌DELETE ROOM").log(!!room);
     return room;
   }
 
@@ -43,7 +43,7 @@ export default class Manager {
 
   findRoomUserIn(userId: string) {
     const room = this.rooms.find((r) => r.findUser(userId));
-    dev.alias("🔍FIND ROOM BY USER ID").log(room);
+    dev.alias("🔍FIND ROOM BY USER ID").log(!!room);
     return room;
   }
 
@@ -51,13 +51,13 @@ export default class Manager {
     const room = this.findRoomUserIn(userId);
     if (room) {
       room.out(userId);
-      dev.alias("❌OUT ROOM BY USER ID").log(room);
+      dev.alias("❌OUT ROOM BY USER ID").log(!!room);
       if (room.users.length === 0) {
         room.streams = [];
         dev.alias("🗑️CLEAR STREAMS").log(room.streams);
       }
     } else {
-      dev.alias("OUT ROOM NOT FOUND").log(room);
+      dev.alias("OUT ROOM NOT FOUND").log(!!room);
     }
     return room;
   }

@@ -2,7 +2,15 @@ import uWS from "uWebSockets.js";
 import Manager from "../model/Manager";
 import User from "../model/User";
 import { includeResult, dev, sendMe } from "../util/tool";
+import fs from "fs";
+import path from "path";
 
+const makeDirnameFilename = (name: string, chunk: number) => {
+  const dirname = `/app/uploads/${name}`;
+  const filename = `${dirname}/${chunk}.mp4`;
+  return [dirname, filename];
+};
+let i = 0;
 export default function streamHandler(
   app: uWS.TemplatedApp,
   ws: uWS.WebSocket<unknown>,
@@ -13,6 +21,7 @@ export default function streamHandler(
     const room = manager.findRoom(json.data.roomId);
     if (room) {
       room.setChunk(json.data.chunk);
+
       dev.alias("✅CURRENT ROOM CHUNK").log(room);
       includeResult(json, { chunk: room.getChunk() });
     } else {
@@ -26,34 +35,23 @@ export default function streamHandler(
     sendMe(app, ws, json);
   } else if (json.data.action === "streams") {
     const room = manager.findRoomUserIn((ws as any).id);
-    // includeResult(json, { chunk: room.getChunk() - 1 });
 
     const uint = new Uint8Array();
     let byteLength = 0;
     const streams = room.getStream();
     for (let stream of streams) {
-      // byteLength += stream.byteLength;
-      dev.alias("🚀🚀 send stream!!!").log(stream);
+      dev.alias("🚀🚀 send stream!!!").log(!!stream);
       ws.send(stream, true);
     }
-    // ws.send("done!!");
-    // const newBuffer = new ArrayBuffer(byteLength);
-    // for (let i = 0; i < streams.length - 1; i++) {
-    //   new Uint8Array(newBuffer).set(
-    //     new Uint8Array(streams[i]),
-    //     i === 0 ? 0 : streams[i + 1].byteLength
-    //   );
-    // }
   } else if (json.data.action === "subscribe") {
     const room = manager.findRoomUserIn((ws as any).id);
-    // includeResult(json, { chunk: room.getChunk() - 1 });
     ws.subscribe(`channel-${room.id}`);
   } else if (json.data.action === "send") {
     console.log("file publish");
     const room = manager.findRoomUserIn((ws as any).id);
     const messageCopy = new Uint8Array(json.file.split(","));
-    // console.log(messageCopy);
     room.addStream(messageCopy);
+
     // const [dirname, filename] = makeDirnameFilename("test", i);
     // i++;
 
@@ -64,7 +62,7 @@ export default function streamHandler(
     //       path.join(path.resolve(), "tmp", filename),
     //       Buffer.from(messageCopy),
     //       (err) => {
-    //         console.log(message);
+    //         console.log(err);
     //       }
     //     );
     //   });

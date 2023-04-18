@@ -80,7 +80,7 @@ export default function PopupModal({
             <Button
               onClick={(e) => {
                 handleClose(e);
-                handler?.(e);
+                handler?.(e, "close");
               }}>
               취소
             </Button>
@@ -88,7 +88,7 @@ export default function PopupModal({
           <Button
             onClick={(e) => {
               handleClose(e);
-              handler?.(e);
+              handler?.(e, "confirm");
             }}
             autoFocus>
             확인

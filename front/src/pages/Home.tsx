@@ -1,7 +1,8 @@
 import { Box, Button, Stack, Typography } from "@mui/material";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useOutletContext } from "react-router-dom";
 import videojs from "video.js";
+import Player from "video.js/dist/types/player";
 import "video.js/dist/video-js.css";
 import VideoJS from "../components/organisms/VideoJS";
 
@@ -13,6 +14,7 @@ const CODEC = "video/webm;codecs=vp9,opus";
 function Home() {
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>();
+  let player: Player;
 
   const handlePath = (e: React.MouseEvent) => {
     const target = e.currentTarget as HTMLButtonElement;
@@ -28,7 +30,7 @@ function Home() {
     if (videoRef.current) {
       videoRef.current.appendChild(videoJS);
       videoJS.src = URL.createObjectURL(mediaSource);
-      const player = videojs(
+      player = videojs(
         videoJS,
         {
           autoplay: true,

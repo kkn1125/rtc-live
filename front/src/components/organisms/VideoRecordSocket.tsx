@@ -1,21 +1,42 @@
-import { Box, Stack } from "@mui/material";
+import {
+  Box,
+  Divider,
+  InputLabel,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
 import axios from "axios";
 import React, { useEffect, useRef, useState } from "react";
 import { v4 } from "uuid";
+import videojs from "video.js";
+import Player from "video.js/dist/types/player";
 import LiveSocket, { INTERCEPT, SIGNAL } from "../../model/LiveSocket";
+import { CODEC, VIDEO_OPTION } from "../../util/global";
 import Chattings from "../moleculars/Chattings";
 import MiniTip from "../moleculars/MiniTip";
+import TopLinkInput from "../moleculars/TopLinkInput";
+import RealTimeVideo from "./RealTimeVideo";
 import VideoJS from "./VideoJS";
+import VideoJS1 from "./VideoJS1";
 
 const socket = new LiveSocket("ws", "localhost", 4000);
-const streams: Blob[] = [];
-const CODEC = "video/webm;codecs=vp9";
+const streams: ArrayBuffer[] = [];
 const mediaSource = new MediaSource();
+
+let localStream: MediaStream = new MediaStream();
+let loop1: NodeJS.Timer;
+let player: Player;
+let before = true;
 
 function VideoRecordSocket() {
   const videoRef = useRef<HTMLDivElement>();
+  const playerRef = useRef<Player>();
   const [room, setRoom] = useState({});
   const [user, setUser] = useState({});
+
+  const [seekToLive, setSeekToLive] = useState(true);
+  const [player1, setPlayer] = useState<Player>();
 
   const [size, setSize] = useState({
     width: 0,
@@ -27,12 +48,10 @@ function VideoRecordSocket() {
   }
 
   function getName() {
-    // return +new Date();
     return "test";
   }
 
   const STREAM_NAME = getName();
-  // const CODEC = 'video/webm; codecs="vp8, vorbis"';
 
   function sendFile(file: Blob, chunkNumber: number) {
     const formData = new FormData();
@@ -55,19 +74,9 @@ function VideoRecordSocket() {
     });
     let countUploadChunk = 0;
     console.log("register");
-    mediaRecorder.ondataavailable = (data) => {
+    mediaRecorder.ondataavailable = async (data) => {
       console.log(data.data, countUploadChunk);
-      // sendFile(data.data, countUploadChunk);
-      // const reader = new FileReader();
-      // reader.onloadend = (e) => {
-      //   const arrayBuffer = reader.result as ArrayBuffer;
-      //   console.log(arrayBuffer);
-      //   socket.sendFile(arrayBuffer);
-      //   countUploadChunk++;
-      // };
-      // reader.readAsArrayBuffer(data.data);
-      streams.push(data.data);
-      // socket.sendFile(data.data);
+      streams.push(await data.data.arrayBuffer());
       countUploadChunk++;
     };
 
@@ -85,29 +94,9 @@ function VideoRecordSocket() {
     let countDownloadChunk = 0;
 
     setInterval(async () => {
-      // axios
-      //   .get(
-      //     `http://localhost:5000/api/download?name=${STREAM_NAME}&chunk=${countDownloadChunk}`,
-      //     {
-      //       responseType: "arraybuffer",
-      //     }
-      //   )
-      //   .then((response) => {
-      //     if (response.status !== 200) {
-      //       throw Error("no such file");
-      //     }
-      //     return response.data;
-      //   })
-      //   .then((buffer) => {
-      //     countDownloadChunk++;
-      //     videoBuffer.appendBuffer(buffer);
-      //   })
-      //   .catch(() => {});
       if (streams[countDownloadChunk]) {
         console.log("play", countDownloadChunk);
-        videoBuffer.appendBuffer(
-          await streams[countDownloadChunk].arrayBuffer()
-        );
+        videoBuffer.appendBuffer(streams[countDownloadChunk]);
         countDownloadChunk++;
       }
     }, 1000);
@@ -148,31 +137,77 @@ function VideoRecordSocket() {
         setRoom((room) => data.result.room);
       }
     });
+
+    return () => {
+      socket.disconnect();
+    };
   }, []);
+
+  const handlePlayerReady = (player: Player) => {
+    playerRef.current = player;
+
+    // You can handle player events here, for example:
+    // @ts-ignore
+    player.on("waiting", () => {
+      videojs.log("player is waiting");
+    });
+
+    // @ts-ignore
+    player.on("dispose", () => {
+      videojs.log("player will dispose");
+    });
+  };
+
   return (
-    <Stack direction={"row"}>
+    <Stack
+      direction={"row"}
+      sx={{
+        backgroundColor: "#121212",
+        p: 3,
+        flex: 1,
+        color: "#ffffff",
+      }}>
       <Stack>
-        <MiniTip
-          badge='live'
-          view={(room as any)?.users?.length || 0}
-          color={"error"}
+        <Box>
+          <Typography
+            fontSize={24}
+            fontWeight={700}
+            gutterBottom
+            sx={{ color: "inherit" }}>
+            실제 영상
+          </Typography>
+          <RealTimeVideo />
+        </Box>
+        <Divider
+          sx={{
+            my: 3,
+            borderColor: "#ffffff",
+          }}
         />
         <Box>
-          <VideoJS
-            admin
-            record
-            socket={socket}
-            videoRef={videoRef}
-            mediaSource={mediaSource}
-            CODEC={CODEC}
+          <Typography
+            fontSize={24}
+            fontWeight={700}
+            gutterBottom
+            sx={{ color: "inherit" }}>
+            라이브 송출 영상 현황
+          </Typography>
+          <MiniTip
+            badge='live'
+            view={(room as any)?.users?.length || 0}
+            color={"error"}
           />
+          <Box>
+            <VideoJS1
+              socket={socket}
+              options={VIDEO_OPTION}
+              onReady={handlePlayerReady}
+            />
+          </Box>
         </Box>
       </Stack>
-      <Stack>
-        <Box
-          sx={{
-            height: 400,
-          }}>
+      <Stack sx={{ flex: 1 }}>
+        <Box sx={{ flex: 1 }}>
           <Chattings
             nosidebar
             room={room}
@@ -183,6 +218,11 @@ function VideoRecordSocket() {
             toggleChatting={toggleChatting}
           />
         </Box>
+        <Stack sx={{ p: 3, flex: 1 }}>
+          <Typography>control pannel</Typography>
+          <TopLinkInput label={"link"} prefix />
+          <TopLinkInput label={"message"} />
+        </Stack>
       </Stack>
     </Stack>
   );
