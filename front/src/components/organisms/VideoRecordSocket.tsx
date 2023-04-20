@@ -1,13 +1,20 @@
 import {
+  Alert,
+  AlertTitle,
   Box,
+  Button,
   Divider,
   InputLabel,
   Stack,
   TextField,
   Typography,
 } from "@mui/material";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { LocalizationProvider, StaticTimePicker } from "@mui/x-date-pickers";
 import axios from "axios";
-import React, { useEffect, useRef, useState } from "react";
+import dayjs from "dayjs";
+import React, { Ref, useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { v4 } from "uuid";
 import videojs from "video.js";
 import Player from "video.js/dist/types/player";
@@ -20,7 +27,7 @@ import RealTimeVideo from "./RealTimeVideo";
 import VideoJS from "./VideoJS";
 import VideoJS1 from "./VideoJS1";
 
-const socket = new LiveSocket("ws", "localhost", 4000);
+let socket: LiveSocket;
 const streams: ArrayBuffer[] = [];
 const mediaSource = new MediaSource();
 
@@ -29,11 +36,20 @@ let loop1: NodeJS.Timer;
 let player: Player;
 let before = true;
 
+const defaultTimeValue = dayjs(new Date().toISOString().slice(0, -8));
+
 function VideoRecordSocket() {
+  const locate = useLocation();
+  const [confirm, setConfirm] = useState(false);
   const videoRef = useRef<HTMLDivElement>();
+  const [isStartedLive, setIsStartedLive] = useState(false);
   const playerRef = useRef<Player>();
   const [room, setRoom] = useState({});
   const [user, setUser] = useState({});
+  const [liveCounter, setLiveCounter] = useState(0);
+
+  const liveTitleRef = useRef<HTMLInputElement>();
+  const [selectTime, setSelectTime] = useState<dayjs.Dayjs>();
 
   const [seekToLive, setSeekToLive] = useState(true);
   const [player1, setPlayer] = useState<Player>();
@@ -103,9 +119,19 @@ function VideoRecordSocket() {
   }
 
   useEffect(() => {
+    return () => {
+      socket?.disconnect();
+    };
+  }, []);
+
+  // live 시작
+  function startLive() {
+    socket = new LiveSocket("ws", "localhost", 4000);
+
     socket.connect();
 
     socket.on(INTERCEPT.OPEN, async (type, e) => {
+      setIsStartedLive(() => true);
       console.log(e);
       await socket.connectRTC();
       socket.signalBinary(SIGNAL.ROOM, {
@@ -137,11 +163,7 @@ function VideoRecordSocket() {
         setRoom((room) => data.result.room);
       }
     });
-
-    return () => {
-      socket.disconnect();
-    };
-  }, []);
+  }
 
   const handlePlayerReady = (player: Player) => {
     playerRef.current = player;
@@ -158,6 +180,30 @@ function VideoRecordSocket() {
     });
   };
 
+  const handleSetTime = () => {
+    if (liveTitleRef.current) {
+      console.log(liveTitleRef.current.value);
+      if (!liveTitleRef.current.value) {
+        console.log("라이브 룸 제목을 입력하세요.");
+        return;
+      }
+
+      if (!selectTime) {
+        console.log("라이브 방송 시간을 설정해주세요.");
+        return;
+      }
+
+      const h = selectTime.hour() - new Date().getHours();
+      const m = selectTime.minute() - new Date().getMinutes();
+      const milliSeconds = (h * 1000 * 60 * 60 + m * 1000 * 60) / 1000;
+      console.log(
+        `라이브 방송이 ${h}시 ${m}분 후에 시작됩니다. 방송을 준비해주세요!`
+      );
+      console.log(milliSeconds);
+      setLiveCounter(milliSeconds);
+    }
+  };
+
   return (
     <Stack
       direction={"row"}
@@ -167,7 +213,7 @@ function VideoRecordSocket() {
         flex: 1,
         color: "#ffffff",
       }}>
-      <Stack>
+      <Stack sx={{ flex: 0.5 }}>
         <Box>
           <Typography
             fontSize={24}
@@ -178,45 +224,115 @@ function VideoRecordSocket() {
           </Typography>
           <RealTimeVideo />
         </Box>
-        <Divider
-          sx={{
-            my: 3,
-            borderColor: "#ffffff",
-          }}
-        />
-        <Box>
-          <Typography
-            fontSize={24}
-            fontWeight={700}
-            gutterBottom
-            sx={{ color: "inherit" }}>
-            라이브 송출 영상 현황
-          </Typography>
-          <MiniTip
-            badge='live'
-            view={(room as any)?.users?.length || 0}
-            color={"error"}
-          />
-          <Box>
-            <VideoJS1
-              socket={socket}
-              options={VIDEO_OPTION}
-              onReady={handlePlayerReady}
+        {isStartedLive && (
+          <>
+            <Divider
+              sx={{
+                my: 3,
+                borderColor: "#ffffff",
+              }}
             />
-          </Box>
-        </Box>
+            <Box>
+              <Typography
+                fontSize={24}
+                fontWeight={700}
+                gutterBottom
+                sx={{ color: "inherit" }}>
+                라이브 송출 영상 현황
+              </Typography>
+              <MiniTip
+                badge='live'
+                view={(room as any)?.users?.length || 0}
+                color={"error"}
+              />
+              <Box>
+                <VideoJS1
+                  socket={socket}
+                  options={VIDEO_OPTION}
+                  onReady={handlePlayerReady}
+                />
+              </Box>
+            </Box>
+          </>
+        )}
       </Stack>
       <Stack sx={{ flex: 1 }}>
         <Box sx={{ flex: 1 }}>
-          <Chattings
-            nosidebar
-            room={room}
-            user={user}
-            socket={socket}
-            size={size}
-            toggleChat={toggleChat}
-            toggleChatting={toggleChatting}
-          />
+          {!isStartedLive ? (
+            <Stack>
+              <Box>
+                <Alert severity='warning'>
+                  <AlertTitle>안내</AlertTitle>
+                  라이브 시작 전 입니다. 라이브 룸 제목과 시작 시작을 설정
+                  해주세요.
+                </Alert>
+              </Box>
+              <Box>
+                <Typography fontWeight={700} fontSize={20}>
+                  📜 라이브 룸 제목
+                </Typography>
+                <TextField
+                  inputRef={liveTitleRef}
+                  sx={{
+                    [".MuiInputBase-root"]: {
+                      backgroundColor: "#ffffff56",
+                    },
+                  }}
+                />
+                <Typography fontWeight={700} fontSize={20}>
+                  📜 시작 시간
+                </Typography>
+                <Box
+                  sx={{
+                    display: "inline-block",
+                    [".MuiPickersLayout-root"]: {
+                      position: "relative",
+                      backgroundColor: "transparent",
+                      color: "#ffffff",
+                      ["& .MuiTypography-root"]: {
+                        color: "#ffffff",
+                        ["&.MuiPickersToolbarText-root.Mui-selected"]: {
+                          color: "#1976d2",
+                        },
+                        ["&.MuiTimePickerToolbar-ampmLabel.Mui-selected"]: {
+                          color: "#1976d2",
+                        },
+                      },
+                      [".MuiClock-root .MuiClock-clock"]: {
+                        backgroundColor: "#ffffff",
+                      },
+                    },
+                    [".MuiDialogActions-root.MuiPickersLayout-actionBar"]: {
+                      display: "none",
+                    },
+                  }}>
+                  <LocalizationProvider dateAdapter={AdapterDayjs}>
+                    <StaticTimePicker
+                      disablePast
+                      onChange={(value, context) => {
+                        console.log("change", value);
+                        console.log("change", context);
+                        setSelectTime(value as dayjs.Dayjs);
+                      }}
+                      defaultValue={defaultTimeValue}
+                      orientation='landscape'
+                    />
+                  </LocalizationProvider>
+                  <Button onClick={handleSetTime}>확인</Button>
+                </Box>
+              </Box>
+            </Stack>
+          ) : (
+            <Chattings
+              nosidebar
+              room={room}
+              user={user}
+              socket={socket}
+              size={size}
+              toggleChat={toggleChat}
+              toggleChatting={toggleChatting}
+            />
+          )}
         </Box>
         <Stack sx={{ p: 3, flex: 1 }}>
           <Typography>control pannel</Typography>

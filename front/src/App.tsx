@@ -19,7 +19,7 @@ function App() {
         <Route path='viewer' element={<ViewerRoom />} />
         <Route path='record' element={<VideoRecord />} />
         <Route path='watch' element={<Watch />} />
-        <Route path='recordsocket' element={<VideoRecordSocket />} />
+        <Route path='recordsocket/:room_id' element={<VideoRecordSocket />} />
         <Route path='watchsocket' element={<WatchSocket />} />
       </Route>
       <Route path='*' element={<NotFound />} />
