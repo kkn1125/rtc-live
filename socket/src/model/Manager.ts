@@ -8,7 +8,12 @@ export default class Manager {
     dev.alias("✨CREATE MANAGER").log(this);
   }
 
-  createRoom(options: { id: string; password?: string; limit?: number }) {
+  createRoom(options: {
+    id: string;
+    title?: string;
+    password?: string;
+    limit?: number;
+  }) {
     const room = this.findRoom(options.id) || new Room(options);
     this.rooms.push(room);
     dev.alias("✨CREATE ROOM").log(!!room);

@@ -12,8 +12,8 @@ export default function userHandler(
 ) {
   if (json.data.action === "create") {
     const user =
-      manager.findUser((ws as any).id) ||
-      new User((ws as any).id, json.data.nickname);
+      manager.findUser((ws as any).roomId) ||
+      new User((ws as any).roomId, json.data.nickname);
     const room = manager.findRoom(json.data.roomId);
     ws.subscribe(json.data.roomId);
     if (room) {

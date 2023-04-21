@@ -22,7 +22,7 @@ export function mediaOfferHandler(
   json: any
 ) {
   if (json.data.action === "send") {
-    const room = manager.findRoomUserIn((ws as any).id);
+    const room = manager.findRoomUserIn((ws as any).roomId);
     room.admin.saveOffer(json.data.offer);
     includeResult(json, {
       from: json.data.to,
@@ -31,7 +31,7 @@ export function mediaOfferHandler(
     });
     sendOthers(app, ws, json);
   } /*  else if (json.data.action === "fetch") {
-    const room = manager.findRoomUserIn((ws as any).id);
+    const room = manager.findRoomUserIn((ws as any).roomId);
     const offer = room.admin.offer;
     includeResult(json, { offer });
     sendOthers(app, ws, json);
@@ -45,7 +45,7 @@ export function mediaAnswerHandler(
   json: any
 ) {
   if (json.data.action === "send") {
-    const room = manager.findRoomUserIn((ws as any).id);
+    const room = manager.findRoomUserIn((ws as any).roomId);
     room.admin.saveAnswer(json.data.answer);
     console.log(json.data);
     includeResult(json, { answer: json.data.answer });
@@ -60,7 +60,7 @@ export function mediaIceHandler(
   json: any
 ) {
   if (json.data.action === "send") {
-    const room = manager.findRoomUserIn((ws as any).id);
+    const room = manager.findRoomUserIn((ws as any).roomId);
     includeResult(json, {
       from: json.data.from,
       candidate: json.data.candidate,

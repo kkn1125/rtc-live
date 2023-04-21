@@ -13,8 +13,8 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider, StaticTimePicker } from "@mui/x-date-pickers";
 import axios from "axios";
 import dayjs from "dayjs";
-import React, { Ref, useEffect, useRef, useState } from "react";
-import { useLocation } from "react-router-dom";
+import React, { Ref, useContext, useEffect, useRef, useState } from "react";
+import { useLocation, useOutletContext, useParams } from "react-router-dom";
 import { v4 } from "uuid";
 import videojs from "video.js";
 import Player from "video.js/dist/types/player";
@@ -26,6 +26,16 @@ import TopLinkInput from "../moleculars/TopLinkInput";
 import RealTimeVideo from "./RealTimeVideo";
 import VideoJS from "./VideoJS";
 import VideoJS1 from "./VideoJS1";
+// import {
+//   RoomContext,
+//   RoomDispatchContext,
+//   ROOM_ACTION,
+// } from "../../context/[x]RoomContext";
+import {
+  SocketContext,
+  SocketDispatchContext,
+  SOCKET_ACTION,
+} from "../../context/SocketContext";
 
 let socket: LiveSocket;
 const streams: ArrayBuffer[] = [];
@@ -39,7 +49,12 @@ let before = true;
 const defaultTimeValue = dayjs(new Date().toISOString().slice(0, -8));
 
 function VideoRecordSocket() {
+  const socket = useContext(SocketContext);
+  const socketDispatch = useContext(SocketDispatchContext);
+  // const roomState = useContext(RoomContext);
+  // const roomDispatch = useContext(RoomDispatchContext);
   const locate = useLocation();
+  const { id, title } = locate.state;
   const [confirm, setConfirm] = useState(false);
   const videoRef = useRef<HTMLDivElement>();
   const [isStartedLive, setIsStartedLive] = useState(false);
@@ -47,6 +62,7 @@ function VideoRecordSocket() {
   const [room, setRoom] = useState({});
   const [user, setUser] = useState({});
   const [liveCounter, setLiveCounter] = useState(0);
+  const [prepare, setPrepare] = useState(false);
 
   const liveTitleRef = useRef<HTMLInputElement>();
   const [selectTime, setSelectTime] = useState<dayjs.Dayjs>();
@@ -119,32 +135,27 @@ function VideoRecordSocket() {
   }
 
   useEffect(() => {
+    socketDispatch({
+      type: SOCKET_ACTION.CONNECT,
+      roomId: id,
+    });
+    // startLive();
     return () => {
-      socket?.disconnect();
+      socket.disconnect();
+      socket.off([INTERCEPT.OPEN, SIGNAL.ROOM, SIGNAL.USER]);
     };
   }, []);
 
   // live 시작
   function startLive() {
-    socket = new LiveSocket("ws", "localhost", 4000);
-
-    socket.connect();
-
-    socket.on(INTERCEPT.OPEN, async (type, e) => {
-      setIsStartedLive(() => true);
-      console.log(e);
-      await socket.connectRTC();
-      socket.signalBinary(SIGNAL.ROOM, {
-        action: "create",
-        id: "test_room",
-      });
-      socket.signalBinary(SIGNAL.USER, {
-        action: "create",
-        roomId: "test_room",
-      });
-      socket.signalBinary(SIGNAL.STREAM, {
-        action: "subscribe",
-      });
+    socketDispatch({
+      type: SOCKET_ACTION.INITIALIZE,
+      roomId: id,
+      roomTitle: title,
+      cb: () => {
+        console.log("live!");
+        setIsStartedLive(() => true);
+      },
     });
 
     socket.on(SIGNAL.ROOM, (type, data) => {
@@ -192,15 +203,28 @@ function VideoRecordSocket() {
         console.log("라이브 방송 시간을 설정해주세요.");
         return;
       }
+      console.log(selectTime.minute());
+      console.log(new Date().getMinutes());
 
-      const h = selectTime.hour() - new Date().getHours();
-      const m = selectTime.minute() - new Date().getMinutes();
-      const milliSeconds = (h * 1000 * 60 * 60 + m * 1000 * 60) / 1000;
+      setPrepare(true);
+      const h = selectTime.hour();
+      const m = selectTime.minute();
+      const milliSeconds = 5;
       console.log(
-        `라이브 방송이 ${h}시 ${m}분 후에 시작됩니다. 방송을 준비해주세요!`
+        `라이브 방송이 ${h}시 ${m}분에 시작됩니다. 방송을 준비해주세요!`
       );
-      console.log(milliSeconds);
-      setLiveCounter(milliSeconds);
+      setLiveCounter(() => milliSeconds);
+      setTimeout(() => {
+        startLive();
+      }, milliSeconds * 1000);
+      const countDown = setInterval(() => {
+        setLiveCounter((liveCounter) => {
+          if (liveCounter < 0) {
+            clearInterval(countDown);
+          }
+          return liveCounter - 1;
+        });
+      }, 1000);
     }
   };
 
@@ -260,67 +284,73 @@ function VideoRecordSocket() {
         <Box sx={{ flex: 1 }}>
           {!isStartedLive ? (
             <Stack>
-              <Box>
-                <Alert severity='warning'>
-                  <AlertTitle>안내</AlertTitle>
-                  라이브 시작 전 입니다. 라이브 룸 제목과 시작 시작을 설정
-                  해주세요.
-                </Alert>
-              </Box>
-              <Box>
-                <Typography fontWeight={700} fontSize={20}>
-                  📜 라이브 룸 제목
-                </Typography>
-                <TextField
-                  inputRef={liveTitleRef}
-                  sx={{
-                    [".MuiInputBase-root"]: {
-                      backgroundColor: "#ffffff56",
-                    },
-                  }}
-                />
-                <Typography fontWeight={700} fontSize={20}>
-                  📜 시작 시간
-                </Typography>
-                <Box
-                  sx={{
-                    display: "inline-block",
-                    [".MuiPickersLayout-root"]: {
-                      position: "relative",
-                      backgroundColor: "transparent",
-                      color: "#ffffff",
-                      ["& .MuiTypography-root"]: {
-                        color: "#ffffff",
-                        ["&.MuiPickersToolbarText-root.Mui-selected"]: {
-                          color: "#1976d2",
-                        },
-                        ["&.MuiTimePickerToolbar-ampmLabel.Mui-selected"]: {
-                          color: "#1976d2",
-                        },
-                      },
-                      [".MuiClock-root .MuiClock-clock"]: {
-                        backgroundColor: "#ffffff",
-                      },
-                    },
-                    [".MuiDialogActions-root.MuiPickersLayout-actionBar"]: {
-                      display: "none",
-                    },
-                  }}>
-                  <LocalizationProvider dateAdapter={AdapterDayjs}>
-                    <StaticTimePicker
-                      disablePast
-                      onChange={(value, context) => {
-                        console.log("change", value);
-                        console.log("change", context);
-                        setSelectTime(value as dayjs.Dayjs);
-                      }}
-                      defaultValue={defaultTimeValue}
-                      orientation='landscape'
-                    />
-                  </LocalizationProvider>
-                  <Button onClick={handleSetTime}>확인</Button>
+              {prepare && liveCounter > 0 && (
+                <Box>
+                  <Alert severity='warning'>
+                    <AlertTitle>안내</AlertTitle>
+                    라이브 시작 전 입니다. 라이브 룸 제목과 시작 시작을 설정
+                    해주세요.
+                    <br />
+                    [라이브 시작 {liveCounter} 초 전]
+                  </Alert>
                 </Box>
-              </Box>
+              )}
+              {!prepare && liveCounter === 0 && (
+                <Box>
+                  <Typography fontWeight={700} fontSize={20}>
+                    📜 라이브 룸 제목
+                  </Typography>
+                  <TextField
+                    inputRef={liveTitleRef}
+                    sx={{
+                      [".MuiInputBase-root"]: {
+                        backgroundColor: "#ffffff56",
+                      },
+                    }}
+                  />
+                  <Typography fontWeight={700} fontSize={20}>
+                    📜 시작 시간
+                  </Typography>
+                  <Box
+                    sx={{
+                      display: "inline-block",
+                      [".MuiPickersLayout-root"]: {
+                        position: "relative",
+                        backgroundColor: "transparent",
+                        color: "#ffffff",
+                        ["& .MuiTypography-root"]: {
+                          color: "#ffffff",
+                          ["&.MuiPickersToolbarText-root.Mui-selected"]: {
+                            color: "#1976d2",
+                          },
+                          ["&.MuiTimePickerToolbar-ampmLabel.Mui-selected"]: {
+                            color: "#1976d2",
+                          },
+                        },
+                        [".MuiClock-root .MuiClock-clock"]: {
+                          backgroundColor: "#ffffff",
+                        },
+                      },
+                      [".MuiDialogActions-root.MuiPickersLayout-actionBar"]: {
+                        display: "none",
+                      },
+                    }}>
+                    <LocalizationProvider dateAdapter={AdapterDayjs}>
+                      <StaticTimePicker
+                        disablePast
+                        onChange={(value, context) => {
+                          console.log("change", value);
+                          console.log("change", context);
+                          setSelectTime(value as dayjs.Dayjs);
+                        }}
+                        defaultValue={defaultTimeValue}
+                        orientation='landscape'
+                      />
+                    </LocalizationProvider>
+                    <Button onClick={handleSetTime}>확인</Button>
+                  </Box>
+                </Box>
+              )}
             </Stack>
           ) : (
             <Chattings

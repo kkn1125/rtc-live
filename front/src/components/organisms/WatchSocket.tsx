@@ -1,6 +1,6 @@
 import { Box } from "@mui/material";
 import axios from "axios";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import LiveSocket, { INTERCEPT, SIGNAL } from "../../model/LiveSocket";
 import LiveCommerceLayout from "./LiveCommerceLayout";
 import VideoJS from "./VideoJS";
@@ -11,6 +11,12 @@ import {
   SOCKET_PORT,
   SOCKET_PROTOCOL,
 } from "../../util/global";
+import { useParams } from "react-router-dom";
+import {
+  SocketContext,
+  SocketDispatchContext,
+  SOCKET_ACTION,
+} from "../../context/SocketContext";
 
 const socket = new LiveSocket(SOCKET_PROTOCOL, SOCKET_HOST, SOCKET_PORT);
 
@@ -18,39 +24,43 @@ let countDownloadChunk = 0;
 let isSkip = false;
 
 function WatchSocket() {
+  const param = useParams();
+  const { roomId } = param;
   const videoRef = useRef<HTMLDivElement>();
   const [room, setRoom] = useState({});
   const [user, setUser] = useState({});
+  const socket = useContext(SocketContext);
+  const socketDispatch = useContext(SocketDispatchContext);
 
-  function getName() {
-    // return +new Date();
-    return "test";
-  }
+  // function getName() {
+  //   // return +new Date();
+  //   return "test";
+  // }
 
-  const STREAM_NAME = getName();
+  // const STREAM_NAME = getName();
 
-  function sendFile(file: Blob, chunkNumber: number) {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("name", STREAM_NAME.toString());
-    formData.append("chunk", chunkNumber.toString());
-    axios.put("http://localhost:5000/api/upload", formData);
-  }
+  // function sendFile(file: Blob, chunkNumber: number) {
+  //   const formData = new FormData();
+  //   formData.append("file", file);
+  //   formData.append("name", STREAM_NAME.toString());
+  //   formData.append("chunk", chunkNumber.toString());
+  //   axios.put("http://localhost:5000/api/upload", formData);
+  // }
 
-  function registerRecord(stream: MediaStream) {
-    const mediaRecorder = new MediaRecorder(stream);
-    let countUploadChunk = 0;
+  // function registerRecord(stream: MediaStream) {
+  //   const mediaRecorder = new MediaRecorder(stream);
+  //   let countUploadChunk = 0;
 
-    mediaRecorder.ondataavailable = (data) => {
-      sendFile(data.data, countUploadChunk);
-      countUploadChunk++;
-    };
-    mediaRecorder.start();
+  //   mediaRecorder.ondataavailable = (data) => {
+  //     sendFile(data.data, countUploadChunk);
+  //     countUploadChunk++;
+  //   };
+  //   mediaRecorder.start();
 
-    setInterval(() => {
-      mediaRecorder.requestData();
-    }, 10000);
-  }
+  //   setInterval(() => {
+  //     mediaRecorder.requestData();
+  //   }, 10000);
+  // }
 
   // function registerPlayer(/* mediaSource: MediaSource */) {
   //   console.log("start play");
@@ -84,30 +94,40 @@ function WatchSocket() {
   // }
 
   useEffect(() => {
-    socket.connect();
+    socketDispatch({
+      type: SOCKET_ACTION.CONNECT,
+      roomId,
+      viewer: true,
+    });
+    // socket.connect();
 
-    socket.on(INTERCEPT.OPEN, async (type, e) => {
-      console.log(e);
-      await socket.connectRTC();
-      socket.signalBinary(SIGNAL.ROOM, {
-        action: "create",
-        id: "test_room",
-      });
-      socket.signalBinary(SIGNAL.USER, {
-        action: "create",
-        roomId: "test_room",
-      });
-      socket.signalBinary(SIGNAL.STREAM, {
-        action: "subscribe",
-      });
+    socketDispatch({
+      type: SOCKET_ACTION.INITIALIZE,
+      roomId: roomId,
     });
 
-    // socket.on(SIGNAL.STREAM, (type, data) => {
-    //   if (data.data.action === "fetch") {
-    //     console.log("fetch 완료");
-    //     console.log(data.result.chunk);
-    //   }
+    // socket.on(INTERCEPT.OPEN, async (type, e) => {
+    //   console.log(e);
+    //   await socket.connectRTC();
+    //   socket.signalBinary(SIGNAL.ROOM, {
+    //     action: "create",
+    //     id: "test_room",
+    //   });
+    //   socket.signalBinary(SIGNAL.USER, {
+    //     action: "create",
+    //     roomId: "test_room",
+    //   });
+    //   socket.signalBinary(SIGNAL.STREAM, {
+    //     action: "subscribe",
+    //   });
     // });
+
+    socket.on(SIGNAL.STREAM, (type, data) => {
+      if (data.data.action === "fetch") {
+        console.log("fetch 완료");
+        console.log(data.result.chunk);
+      }
+    });
 
     socket.on(SIGNAL.ROOM, (type, data) => {
       const roomData = data.result.room;

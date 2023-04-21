@@ -2,8 +2,8 @@ import React, { createContext, useReducer } from "react";
 
 const roomPartition = {};
 
-export const RoomContext = createContext(null);
-export const RoomDispatchContext = createContext<any>(null);
+export const RoomContext = createContext({});
+export const RoomDispatchContext = createContext<any>(() => {});
 
 export enum ROOM_ACTION {
   CREATE = "ROOM/CREATE",
@@ -44,6 +44,7 @@ const reducer = (state: any, action: any) => {
 
 const RoomProvider = ({ children }: { children: React.ReactElement }) => {
   const [state, dispatch] = useReducer(reducer, roomPartition);
+
   return (
     <RoomDispatchContext.Provider value={dispatch}>
       <RoomContext.Provider value={state}>{children}</RoomContext.Provider>;

@@ -1,0 +1,7 @@
+
+
+export enum ROOM_ACTION {
+  CREATE = "ROOM/CREATE",
+  UPDATE = "ROOM/UPDATE",
+  DELETE = "ROOM/DELETE",
+}

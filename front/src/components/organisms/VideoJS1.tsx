@@ -14,6 +14,7 @@ let before = true;
 let mediaSource: MediaSource | undefined;
 let countUploadChunk = 0;
 let videoBuffer: SourceBuffer;
+let mediaRecorder: MediaRecorder;
 
 export const VideoJS = (props: {
   socket: LiveSocket;
@@ -33,7 +34,7 @@ export const VideoJS = (props: {
   };
 
   function registerRecord(stream: MediaStream) {
-    let mediaRecorder = new MediaRecorder(stream, {
+    mediaRecorder = new MediaRecorder(stream, {
       mimeType: CODEC,
       bitsPerSecond: 2000,
       videoBitsPerSecond: 500,
@@ -121,6 +122,7 @@ export const VideoJS = (props: {
       mediaSource = undefined;
       streams = [];
       clearTimeout(loop1);
+      mediaRecorder.stop();
     };
   }, []);
 

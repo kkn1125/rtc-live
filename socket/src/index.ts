@@ -82,6 +82,14 @@ const app = uWS
       const upgradeAborted = { aborted: false };
 
       /* You MUST copy data out of req here, as req is only valid within this immediate callback */
+      const data = Object.fromEntries(
+        req
+          .getQuery()
+          .split("&")
+          .map((q) => q.split("="))
+      );
+      const roomId = data.roomId;
+      // const roomId =
       const userId = v4();
       const url = req.getUrl();
       const secWebSocketKey = req.getHeader("sec-websocket-key");
@@ -103,7 +111,8 @@ const app = uWS
         /* This immediately calls open handler, you must not use res after this call */
         res.upgrade(
           {
-            id: userId,
+            userId,
+            roomId,
             url: url,
           },
           /* Use our copies here */
@@ -123,10 +132,10 @@ const app = uWS
     open: (ws: any) => {
       userData.set(ws, {});
       ws.subscribe("global");
-      ws.subscribe(ws.id);
-      Object.assign(userData.get(ws), { id: ws.id });
+      ws.subscribe(ws.userId);
+      Object.assign(userData.get(ws), { userId: ws.userId });
       dev.alias("connect url").log(ws.url);
-      dev.alias("user id").log(ws.id);
+      dev.alias("user userId").log(ws.userId);
     },
     message: (ws, message, isBinary) => {
       /* Ok is false if backpressure was built up, wait for drain */

@@ -34,7 +34,7 @@ export default function streamHandler(
     includeResult(json, { chunk: room.getChunk() - 1 });
     sendMe(app, ws, json);
   } else if (json.data.action === "streams") {
-    const room = manager.findRoomUserIn((ws as any).id);
+    const room = manager.findRoomUserIn((ws as any).roomId);
 
     const uint = new Uint8Array();
     let byteLength = 0;
@@ -44,11 +44,11 @@ export default function streamHandler(
       ws.send(stream, true);
     }
   } else if (json.data.action === "subscribe") {
-    const room = manager.findRoomUserIn((ws as any).id);
+    const room = manager.findRoomUserIn((ws as any).roomId);
     ws.subscribe(`channel-${room.id}`);
   } else if (json.data.action === "send") {
     console.log("file publish");
-    const room = manager.findRoomUserIn((ws as any).id);
+    const room = manager.findRoomUserIn((ws as any).roomId);
     const messageCopy = new Uint8Array(json.file.split(","));
     room.addStream(messageCopy);
 

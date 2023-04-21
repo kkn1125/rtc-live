@@ -98,8 +98,12 @@ export default class LiveSocket {
     this.events[MEDIA.ICE_CANDIDATE] = { cb: [() => {}], data: {} };
   }
 
-  connect() {
-    const ws = new WebSocket(`${this.protocol}://${this.host}:${this.port}`);
+  connect(roomId?: string) {
+    const ws = new WebSocket(
+      `${this.protocol}://${this.host}:${this.port}${
+        roomId ? `?roomId=${roomId}` : ""
+      }`
+    );
     ws.binaryType = "arraybuffer";
     ws.onopen = this.onOpen;
     ws.onerror = this.onError;
@@ -159,7 +163,7 @@ export default class LiveSocket {
       // binary
       try {
         const decoded = Message.decode(new Uint8Array(e.data)).toJSON();
-
+        console.log('decoded',decoded)
         /* data & result exists? */
         this.getParsingData(decoded);
         dev.alias("📜BINARY MESSAGE").debug(decoded);
@@ -218,6 +222,32 @@ export default class LiveSocket {
       };
     }
     this.events[type].cb.push(cb);
+  }
+
+  off(
+    type:
+      | INTERCEPT
+      | SIGNAL
+      | MEDIA
+      | `custom:${string}`
+      | (INTERCEPT | SIGNAL | MEDIA | `custom:${string}`)[]
+      | undefined = undefined
+  ): void {
+    if (typeof type === "string") {
+      if (this.events[type]) {
+        delete this.events[type];
+        console.log("✅ success delete event:", type);
+      }
+    } else if (type instanceof Array) {
+      type.forEach((key) => {
+        console.log("✅ success delete event:", key);
+        this.events[key] = { cb: [() => {}], data: {} };
+      });
+    } else if (type === undefined) {
+      Object.keys(this.events).forEach(
+        (key) => (this.events[key] = { cb: [() => {}], data: {} })
+      );
+    }
   }
 
   signalBinary(

@@ -3,6 +3,7 @@ import User from "./User";
 
 export default class Room {
   id: string;
+  title?: string;
   password?: string;
 
   admin: User | undefined;
@@ -15,14 +16,17 @@ export default class Room {
 
   constructor({
     id,
+    title,
     password,
     limit,
   }: {
     id: string;
+    title?: string;
     password?: string;
     limit?: number;
   }) {
     id && (this.id = id);
+    title && (this.title = title);
     password && (this.password = password);
     limit && (this.limit = limit);
     dev.alias("✨CREATE ROOM").log(this);
